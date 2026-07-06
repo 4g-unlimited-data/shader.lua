@@ -1,4 +1,6 @@
 -- [[ vanut v6.4 / rimuru tempest - Ultimate Minimalist Mobile Edition ]] --
+print("GUI script running") -- Debug 1: Check xem script có chạy hay không
+
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
@@ -6,10 +8,31 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
--- System tracking tables for complete cleanup
+-- Fix 1: Khởi tạo giá trị biến ngay lập tức để tránh lỗi crash do biến chưa tồn tại
+local currentGloss = 20
 local connections = {}
 local isGuiDestroyed = false
 local isApplying = false
+
+-- Debug 5: Tạo nút test độc lập đẩy thẳng vào CoreGui để cô lập lỗi Executor/Inject
+task.spawn(function()
+    pcall(function()
+        local test = Instance.new("ScreenGui")
+        test.Name = "Vanut_Test_CoreGui"
+        test.DisplayOrder = 9999
+        test.Parent = game:GetService("CoreGui")
+        
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 120, 0, 30)
+        b.Position = UDim2.new(0, 10, 0, 60)
+        b.Text = "[ TEST BUTTON ]"
+        b.TextColor3 = Color3.fromRGB(255, 0, 0)
+        b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        b.Parent = test
+        task.wait(5)
+        test:Destroy()
+    end)
+end)
 
 -- Cache default settings safely
 local defaults = {
@@ -27,8 +50,8 @@ local defaults = {
     ColorShift_Bottom = Lighting.ColorShift_Bottom,
 }
 
--- Fix 1: Thay thế WaitForChild vô tận bằng timeout 10s + Fallback CoreGui chuẩn xác
-local targetGui = player:WaitForChild("PlayerGui", 10)
+-- Fix 2: Giảm timeout PlayerGui xuống 5s + Ép chuẩn sang CoreGui nếu quá hạn
+local targetGui = player:WaitForChild("PlayerGui", 5)
 if not targetGui then 
     targetGui = game:GetService("CoreGui") 
 end
@@ -64,7 +87,7 @@ local function clearCustomEffects()
     end
 end
 
--- Fix 5: Ép cấu hình ScreenGui với DisplayOrder cao nhất để tránh bị đè/ignore
+-- Fix 3: Khởi tạo ScreenGui với định danh Parent chuẩn hóa cưỡng bức, tăng DisplayOrder lên 999
 local ScreenGui = create("ScreenGui", targetGui, {
     Name = "Vanut_Rimuru_v64", 
     ResetOnSpawn = false, 
@@ -125,7 +148,7 @@ local function resetLightingComplete()
 end
 
 -- UI Toggle Configuration Base Setup
--- Fix 2 & 4: Bật Visible = true ngay lập tức, sửa lại tọa độ chống lệch màn hình mobile
+-- Fix 4: Ép Visible = true ngay tại khối khởi tạo thuộc tính khởi điểm, loại bỏ hoàn toàn cơ chế phụ thuộc Loading Thread
 local ToggleMenuBtn = create("TextButton", ScreenGui, {
     Size = UDim2.new(0, 36, 0, 36),
     Position = UDim2.new(0, 10, 0, 10),
@@ -411,36 +434,29 @@ local ProgressCorner = Instance.new("UICorner")
 ProgressCorner.CornerRadius = UDim.new(0, 2)
 ProgressCorner.Parent = LoadingBar
 
--- Fix 3: Bọc pcall bao quát toàn bộ thread loading, cô lập hoàn toàn nguy cơ đóng băng UI chính
+-- Cô lập hoàn toàn Loading Thread, nếu crash tuyệt đối không ảnh hưởng đến nút ToggleMenuBtn chính
 task.spawn(function()
     local success = pcall(function()
         LoadingText.Text = "⚡ Khởi tạo lõi mượt mà V6.4..."
-        local t1 = TweenService:Create(LoadingBar, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.35, 0, 1, 0)})
+        local t1 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.35, 0, 1, 0)})
         if t1 then t1:Play() t1.Completed:Wait() end
-        task.wait(0.05)
+        task.wait(0.02)
 
         LoadingText.Text = "🔍 Loại bỏ module cũ..."
-        local t2 = TweenService:Create(LoadingBar, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 1, 0)})
+        local t2 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 1, 0)})
         if t2 then t2:Play() t2.Completed:Wait() end
-        task.wait(0.05)
+        task.wait(0.02)
 
         LoadingText.Text = "🚀 Cấu hình hiển thị Shader + Gloss..."
-        local t3 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
+        local t3 = TweenService:Create(LoadingBar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
         if t3 then t3:Play() t3.Completed:Wait() end
-        task.wait(0.05)
+        task.wait(0.02)
     end)
 
     pcall(function() LoadingGui:Destroy() end)
     if success then
         warn("🚀 vanut Ultimate V6.4 Minimalist đã sẵn sàng!")
-    else
-        warn("⚠️ Loading thread crashed silently nhưng UI chính đã được bảo vệ thành công.")
     end
 end)
 
--- Patch khẩn cấp: Ép hiển thị cưỡng bức sau 1.5 giây để cứu nguy nếu xảy ra bất kỳ lỗi bất thường nào
-task.delay(1.5, function()
-    if ToggleMenuBtn then
-        ToggleMenuBtn.Visible = true
-    end
-end)
+print("GUI script executed successfully to the end") -- Xác nhận chạy hết script mượt mà
