@@ -314,7 +314,7 @@ local shaderFuncs = {
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
     {"Sáng đêm (Dễ đi đường)", function() lockTime(0) brightConn = RunService.Heartbeat:Connect(function() Lighting.Ambient = Color3.fromRGB(200, 200, 200) Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200) Lighting.Brightness = 3 end) end},
     {"Làm nét Texture + Tối ưu PC", function() local objects = Workspace:GetDescendants() for i = 1, #objects do local object = objects[i] if object:IsA("BasePart") then if not originalMaterials[object] then originalMaterials[object] = object.Material end if object.Material == Enum.Material.Plastic or object.Material == Enum.Material.SmoothPlastic then object.Material = Enum.Material.Concrete end elseif object:IsA("Decal") or object:IsA("Texture") then object.LocalTransparencyModifier = object.LocalTransparencyModifier end if i % 200 == 0 then task.wait() end end end},
-    {"Siêu rõ nét & Đổ bóng mạnh", function() 
+    {"Chế độ Nét Tối Đa", function() 
         Lighting.GlobalShadows = true
         Lighting.ShadowSoftness = 0 
         for _, obj in pairs(Workspace:GetDescendants()) do 
@@ -322,10 +322,10 @@ local shaderFuncs = {
                 obj.LocalTransparencyModifier = 0 
             elseif obj:IsA("BasePart") then
                 obj.CastShadow = true
+                if obj.Material == Enum.Material.Plastic then obj.Material = Enum.Material.SmoothPlastic end
             end
         end 
-    end},
-    {"Bật Motion Blur (Mượt)", function() disableMotionBlurOnly() local blur = Lighting:FindFirstChild("VanutMotionBlur") or create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0}) local camera = Workspace.CurrentCamera local lastRotation = camera.CFrame.Rotation RunService:BindToRenderStep("VanutMotionBlurUpdate", Enum.RenderPriority.Camera.Value + 1, function() local currentRotation = camera.CFrame.Rotation local deltaAngle = math.acos(math.clamp(currentRotation.LookVector:Dot(lastRotation.LookVector), -1, 1)) local targetBlurSize = math.clamp(deltaAngle * 12, 0, 3.5) blur.Size = blur.Size + (targetBlurSize - blur.Size) * 0.4 lastRotation = currentRotation end) end}
+    end}
 }
 
 for i, data in ipairs(shaderFuncs) do
@@ -342,7 +342,7 @@ for i, data in ipairs(shaderFuncs) do
     create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
     btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
-    btn.MouseButton1Click:Connect(function() if data[1] == "Bật Motion Blur (Mượt)" then data[2]() else resetLightingComplete() data[2]() end end)
+    btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
 local ResetBlurBtn = create("TextButton", MainMenu, {
