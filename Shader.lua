@@ -55,7 +55,7 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
     Size = UDim2.new(1, -20, 1, -265),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 500),
+    CanvasSize = UDim2.new(0, 0, 0, 550),
     ScrollBarThickness = 2,
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
@@ -314,7 +314,17 @@ local shaderFuncs = {
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
     {"Sáng đêm (Dễ đi đường)", function() lockTime(0) brightConn = RunService.Heartbeat:Connect(function() Lighting.Ambient = Color3.fromRGB(200, 200, 200) Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200) Lighting.Brightness = 3 end) end},
     {"Làm nét Texture + Tối ưu PC", function() local objects = Workspace:GetDescendants() for i = 1, #objects do local object = objects[i] if object:IsA("BasePart") then if not originalMaterials[object] then originalMaterials[object] = object.Material end if object.Material == Enum.Material.Plastic or object.Material == Enum.Material.SmoothPlastic then object.Material = Enum.Material.Concrete end elseif object:IsA("Decal") or object:IsA("Texture") then object.LocalTransparencyModifier = object.LocalTransparencyModifier end if i % 200 == 0 then task.wait() end end end},
-    {"Siêu rõ nét Texture", function() for _, obj in pairs(Workspace:GetDescendants()) do if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then obj.LocalTransparencyModifier = 0 end end end},
+    {"Siêu rõ nét & Đổ bóng mạnh", function() 
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0 
+        for _, obj in pairs(Workspace:GetDescendants()) do 
+            if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then 
+                obj.LocalTransparencyModifier = 0 
+            elseif obj:IsA("BasePart") then
+                obj.CastShadow = true
+            end
+        end 
+    end},
     {"Bật Motion Blur (Mượt)", function() disableMotionBlurOnly() local blur = Lighting:FindFirstChild("VanutMotionBlur") or create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0}) local camera = Workspace.CurrentCamera local lastRotation = camera.CFrame.Rotation RunService:BindToRenderStep("VanutMotionBlurUpdate", Enum.RenderPriority.Camera.Value + 1, function() local currentRotation = camera.CFrame.Rotation local deltaAngle = math.acos(math.clamp(currentRotation.LookVector:Dot(lastRotation.LookVector), -1, 1)) local targetBlurSize = math.clamp(deltaAngle * 12, 0, 3.5) blur.Size = blur.Size + (targetBlurSize - blur.Size) * 0.4 lastRotation = currentRotation end) end}
 }
 
