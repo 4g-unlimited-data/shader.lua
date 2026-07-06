@@ -1,4 +1,3 @@
--- [[ vanut v6.5.3 / rimuru tempest - Shader Edition ]] --
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
@@ -18,9 +17,64 @@ local function create(cls, parent, props)
     return inst
 end
 
+-- ScreenGui chính
 local ScreenGui = create("ScreenGui", targetGui, {Name = "Vanut_Shader_Only", ResetOnSpawn = false})
-local MainMenu = create("Frame", ScreenGui, {Size = UDim2.new(0, 300, 0, 350), Position = UDim2.new(0.5, -150, 0.5, -175), BackgroundColor3 = Color3.fromRGB(10, 16, 28), Visible = true})
+
+-- 1. Nút Bật/Tắt Menu (Toggle Button) phù hợp cho điện thoại
+local ToggleBtn = create("TextButton", ScreenGui, {
+    Size = UDim2.new(0, 50, 0, 50),
+    Position = UDim2.new(0.05, 0, 0.1, 0),
+    BackgroundColor3 = Color3.fromRGB(22, 38, 64),
+    Text = "Vanut",
+    TextColor3 = Color3.new(1, 1, 1),
+    TextSize = 14,
+    Font = Enum.Font.SourceSansBold,
+    Active = true,
+    Draggable = true -- Tự động cho phép di chuyển nút bật/tắt
+})
+create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 25)})
+
+-- 2. Tùy chỉnh Menu (Không quá màn hình, không lớn quá nửa màn hình điện thoại)
+local MainMenu = create("Frame", ScreenGui, {
+    Size = UDim2.new(0, 240, 0, 320), 
+    Position = UDim2.new(0.5, -120, 0.5, -160), 
+    BackgroundColor3 = Color3.fromRGB(10, 16, 28), 
+    Visible = false -- Mặc định ẩn, bấm nút để bật
+})
 create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 8)})
+
+-- Tính năng Bật/Tắt khi nhấn nút
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainMenu.Visible = not MainMenu.Visible
+end)
+
+-- Tính năng Di chuyển (Drag) cho MainMenu trên Điện thoại và Máy tính
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    MainMenu.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainMenu.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainMenu.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+MainMenu.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then update(input) end
+end)
 
 local timeLockConn, starConn
 
@@ -63,12 +117,13 @@ local shaderFuncs = {
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end}
 }
 
+-- Điều chỉnh kích thước nút bên trong Menu cho vừa vặn size mới
 for i, data in ipairs(shaderFuncs) do
-    local btn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 40), Position = UDim2.new(0.05, 0, 0, 10 + (i-1)*45), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = data[1], TextColor3 = Color3.new(1,1,1)})
+    local btn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 10 + (i-1)*40), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = data[1], TextColor3 = Color3.new(1,1,1), TextSize = 14})
     create("UICorner", btn, {CornerRadius = UDim.new(0, 6)})
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
-local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 40), Position = UDim2.new(0.05, 0, 0, 290), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "XÓA SHADER", TextColor3 = Color3.new(1,1,1)})
+local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 270), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "XÓA SHADER", TextColor3 = Color3.new(1,1,1), TextSize = 14})
 create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
 ResetBtn.MouseButton1Click:Connect(resetLightingComplete)
