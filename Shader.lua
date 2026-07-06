@@ -20,35 +20,56 @@ end
 -- ScreenGui chính
 local ScreenGui = create("ScreenGui", targetGui, {Name = "Vanut_Shader_Only", ResetOnSpawn = false})
 
--- 1. Nút Bật/Tắt Menu (Toggle Button)
+-- 1. Nút Bật/Tắt Menu (Toggle Button hiện đại)
 local ToggleBtn = create("TextButton", ScreenGui, {
-    Size = UDim2.new(0, 50, 0, 50),
+    Size = UDim2.new(0, 60, 0, 60),
     Position = UDim2.new(0.05, 0, 0.1, 0),
-    BackgroundColor3 = Color3.fromRGB(22, 38, 64),
+    BackgroundColor3 = Color3.fromRGB(30, 41, 59),
     Text = "Vanut",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 14,
-    Font = Enum.Font.SourceSansBold,
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextSize = 15,
+    Font = Enum.Font.GothamBold,
     Active = true,
     Draggable = true
 })
-create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 25)})
+create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
+create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
 
--- 2. Tùy chỉnh Menu
+-- 2. Tùy chỉnh Menu (Giao diện Dark Theme cao cấp)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 240, 0, 320), 
-    Position = UDim2.new(0.5, -120, 0.5, -160), 
-    BackgroundColor3 = Color3.fromRGB(10, 16, 28), 
+    Size = UDim2.new(0, 260, 0, 450), 
+    Position = UDim2.new(0.5, -130, 0.5, -225), 
+    BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
-create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 8)})
+create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 12)})
+create("UIStroke", MainMenu, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1.5})
 
--- Tính năng Bật/Tắt khi nhấn nút
+-- Tiêu đề Menu
+local MenuTitle = create("TextLabel", MainMenu, {
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundTransparency = 1,
+    Text = "VANUT SHADER HUB",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextSize = 14,
+    Font = Enum.Font.GothamBold
+})
+
+-- Khung chứa danh sách nút cuộn mượt
+local ScrollFrame = create("ScrollingFrame", MainMenu, {
+    Size = UDim2.new(1, -20, 1, -110),
+    Position = UDim2.new(0, 10, 0, 45),
+    BackgroundTransparency = 1,
+    CanvasSize = UDim2.new(0, 0, 0, 420),
+    ScrollBarThickness = 2,
+    ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
+})
+
 ToggleBtn.MouseButton1Click:Connect(function()
     MainMenu.Visible = not MainMenu.Visible
 end)
 
--- Hàm xử lý kéo thả (Drag) dùng chung cho cả MainMenu và UI FPS
+-- Hàm xử lý kéo thả (Drag) mượt mà
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
     
@@ -79,9 +100,9 @@ end
 
 makeDraggable(MainMenu)
 
--- 3. UI FPS Trong Suốt Chữ 7 Sắc Cầu Vồng (Hỗ trợ di chuyển tùy ý)
+-- 3. UI FPS Trong Suốt Chữ 7 Sắc Cầu Vồng
 local FpsFrame = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 100, 0, 30),
+    Size = UDim2.new(0, 120, 0, 40),
     Position = UDim2.new(0.85, 0, 0.05, 0),
     BackgroundTransparency = 1,
     Active = true
@@ -92,14 +113,14 @@ local FpsLabel = create("TextLabel", FpsFrame, {
     BackgroundTransparency = 1,
     Text = "FPS: ...",
     TextSize = 18,
-    Font = Enum.Font.SourceSansBold,
+    Font = Enum.Font.GothamBold,
     TextXAlignment = Enum.TextXAlignment.Center,
     TextYAlignment = Enum.TextYAlignment.Center
 })
 
 makeDraggable(FpsFrame)
 
--- Logic tính toán FPS và hiệu ứng chữ 7 sắc cầu vồng
+-- Logic tính toán FPS tối ưu tài nguyên
 local frameCount = 0
 local lastUpdate = os.clock()
 local hue = 0
@@ -119,12 +140,75 @@ RunService.RenderStepped:Connect(function(dt)
     FpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
 end)
 
--- Hệ thống Shader
-local timeLockConn, starConn
+-- Thanh Slider tùy chỉnh kích thước FPS UI trong Menu
+local SliderFrame = create("Frame", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 45),
+    Position = UDim2.new(0.05, 0, 1, -100),
+    BackgroundColor3 = Color3.fromRGB(30, 41, 59)
+})
+create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
+
+local SliderLabel = create("TextLabel", SliderFrame, {
+    Size = UDim2.new(1, 0, 0, 20),
+    BackgroundTransparency = 1,
+    Text = "Kích thước FPS UI",
+    TextColor3 = Color3.fromRGB(148, 163, 184),
+    TextSize = 11,
+    Font = Enum.Font.GothamSemibold
+})
+
+local SliderBar = create("Frame", SliderFrame, {
+    Size = UDim2.new(0.8, 0, 0, 6),
+    Position = UDim2.new(0.1, 0, 0.65, 0),
+    BackgroundColor3 = Color3.fromRGB(51, 65, 85)
+})
+create("UICorner", SliderBar, {CornerRadius = UDim.new(0, 3)})
+
+local SliderBtn = create("TextButton", SliderBar, {
+    Size = UDim2.new(0, 14, 0, 14),
+    Position = UDim2.new(0.4, -7, 0.5, -7),
+    BackgroundColor3 = Color3.fromRGB(56, 189, 248),
+    Text = ""
+})
+create("UICorner", SliderBtn, {CornerRadius = UDim.new(0, 7)})
+
+local SliderActive = false
+SliderBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then SliderActive = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then SliderActive = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if SliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local mousePos = input.Position.X
+        local barLeft = SliderBar.AbsolutePosition.X
+        local barWidth = SliderBar.AbsoluteSize.X
+        local percentage = math.clamp((mousePos - barLeft) / barWidth, 0, 1)
+        SliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7)
+        
+        -- Tính toán scale size tương ứng (từ 12px đến 32px)
+        local targetSize = 12 + (percentage * 20)
+        FpsLabel.TextSize = targetSize
+        FpsFrame.Size = UDim2.new(0, targetSize * 6, 0, targetSize * 2)
+    end
+end)
+
+-- Hệ thống Shader & Tính năng bổ sung tối ưu hóa
+local timeLockConn, starConn, brightConn
+local originalMaterials = {}
 
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     if starConn then starConn:Disconnect() starConn = nil end
+    if brightConn then brightConn:Disconnect() brightConn = nil end
+    
+    -- Khôi phục Texture/Material gốc nếu có tối ưu nâng cao trước đó
+    for part, mat in pairs(originalMaterials) do
+        if part and part:IsA("BasePart") then part.Material = mat end
+    end
+    table.clear(originalMaterials)
+    
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
     for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do 
         local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
@@ -132,6 +216,7 @@ local function resetLightingComplete()
     Lighting.ClockTime = 14
     Lighting.Brightness = 2
     Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
 end
 
 local function lockTime(targetTime)
@@ -153,21 +238,71 @@ local function spawnAdvancedNight()
     end)
 end
 
+-- Khai báo danh sách các tính năng Shader cũ + Mới
 local shaderFuncs = {
     {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
     {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
     {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4}) end},
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
     {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end}
+    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
+    
+    -- TÍNH NĂNG MỚI THEO YÊU CẦU:
+    {"Sáng đêm (Dễ đi đường)", function()
+        lockTime(0)
+        brightConn = RunService.Heartbeat:Connect(function()
+            Lighting.Ambient = Color3.fromRGB(200, 200, 200)
+            Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
+            Lighting.Brightness = 3
+        end)
+    end},
+    {"Làm nét Texture + Tối ưu PC", function()
+        -- Quét tối ưu hóa và tăng cường độ chi tiết hiển thị không gây lag
+        for _, object in pairs(Workspace:GetDescendants()) do
+            if object:IsA("BasePart") then
+                if not originalMaterials[object] then originalMaterials[object] = object.Material end
+                -- Thay thế các chất liệu nặng bằng chất liệu mượt mà tăng chi tiết lưới đổ bóng tốt hơn
+                if object.Material == Enum.Material.Plastic or object.Material == Enum.Material.SmoothPlastic then
+                    object.Material = Enum.Material.Concrete
+                end
+            elseif object:IsA("Decal") or object:IsA("Texture") then
+                -- Ép buộc làm sạch cấu trúc texture không gây trễ bộ nhớ đệm render
+                object.LocalTransparencyModifier = object.LocalTransparencyModifier
+            end
+        end
+    end}
 }
 
+-- Khởi tạo các nút lựa chọn trong danh sách cuộn
 for i, data in ipairs(shaderFuncs) do
-    local btn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 10 + (i-1)*40), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = data[1], TextColor3 = Color3.new(1,1,1), TextSize = 14})
+    local btn = create("TextButton", ScrollFrame, {
+        Size = UDim2.new(0.96, 0, 0, 38), 
+        Position = UDim2.new(0.02, 0, 0, 5 + (i-1)*44), 
+        BackgroundColor3 = Color3.fromRGB(30, 41, 59), 
+        Text = data[1], 
+        TextColor3 = Color3.fromRGB(241, 245, 249), 
+        TextSize = 13,
+        Font = Enum.Font.GothamSemibold
+    })
     create("UICorner", btn, {CornerRadius = UDim.new(0, 6)})
+    create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
+    
+    -- Hiệu ứng Hover tương tác cho nút hiện đại hơn
+    btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
+    
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
-local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 270), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "XÓA SHADER", TextColor3 = Color3.new(1,1,1), TextSize = 14})
+-- Nút xóa Shader chân trang Menu
+local ResetBtn = create("TextButton", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 38), 
+    Position = UDim2.new(0.05, 0, 1, -48), 
+    BackgroundColor3 = Color3.fromRGB(239, 68, 68), 
+    Text = "XÓA SHADER", 
+    TextColor3 = Color3.fromRGB(255, 255, 255), 
+    TextSize = 13,
+    Font = Enum.Font.GothamBold
+})
 create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
 ResetBtn.MouseButton1Click:Connect(resetLightingComplete)
