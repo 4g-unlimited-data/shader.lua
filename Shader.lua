@@ -35,10 +35,10 @@ local ToggleBtn = create("TextButton", ScreenGui, {
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
 create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
 
--- 2. Tùy chỉnh Menu (Tăng chiều cao lên 560 để vừa nút Reset Bóng Loáng)
+-- 2. Tùy chỉnh Menu (Tăng chiều cao lên 605 để vừa nút Tắt Motion Blur)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 260, 0, 560), 
-    Position = UDim2.new(0.5, -130, 0.5, -280), 
+    Size = UDim2.new(0, 260, 0, 605), 
+    Position = UDim2.new(0.5, -130, 0.5, -302), 
     BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
@@ -57,7 +57,7 @@ local MenuTitle = create("TextLabel", MainMenu, {
 
 -- Khung chứa danh sách nút cuộn mượt
 local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(1, -20, 1, -220),
+    Size = UDim2.new(1, -20, 1, -265),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
     CanvasSize = UDim2.new(0, 0, 0, 460),
@@ -143,7 +143,7 @@ end)
 -- Thanh Slider tùy chỉnh kích thước FPS UI trong Menu
 local SliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -210),
+    Position = UDim2.new(0.05, 0, 1, -255),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -193,10 +193,10 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG ĐỒ HỌA CAO (Dành cho cấu hình thấp)
+-- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG ĐỒ HỌA CAO CHUẨN ĐẸP MƯỢT
 local ReflectSliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -155),
+    Position = UDim2.new(0.05, 0, 1, -200),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -236,17 +236,17 @@ local function updateWorldReflection(glossPercentage)
     for i = 1, #parts do
         local object = parts[i]
         if object:IsA("BasePart") then
-            if object.Size.X > 2 or object.Size.Z > 2 or object.Size.Y > 2 then
+            if object.Size.X > 1.5 or object.Size.Z > 1.5 then
                 if glossPercentage > 0 then
-                    object.Material = Enum.Material.Metal
-                    object.Reflectance = glossPercentage * 0.45 
+                    object.Material = Enum.Material.SmoothPlastic
+                    object.Reflectance = glossPercentage * 0.65 
                 else
                     object.Material = Enum.Material.SmoothPlastic
                     object.Reflectance = 0
                 end
             end
         end
-        if i % 200 == 0 then task.wait() end 
+        if i % 250 == 0 then task.wait() end 
     end
 end
 
@@ -273,7 +273,6 @@ end)
 local timeLockConn, starConn, brightConn, motionBlurConn
 local originalMaterials = {}
 
--- Hàm tắt riêng độ bóng và reset thanh trượt bóng loáng về 0%
 local function resetReflectionOnly()
     ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
     ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
@@ -292,6 +291,13 @@ local function resetReflectionOnly()
         end
         if i % 200 == 0 then task.wait() end
     end
+end
+
+-- Hàm tắt riêng biệt Motion Blur
+local function disableMotionBlurOnly()
+    if motionBlurConn then motionBlurConn:Disconnect() motionBlurConn = nil end
+    local blur = Lighting:FindFirstChild("VanutMotionBlur")
+    if blur then blur:Destroy() end
 end
 
 local function resetLightingComplete()
@@ -371,14 +377,15 @@ local shaderFuncs = {
         if motionBlurConn then motionBlurConn:Disconnect() end
         local blur = Lighting:FindFirstChild("VanutMotionBlur") or create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0})
         local camera = Workspace.CurrentCamera
-        local lastCFrame = camera.CFrame
+        local lastRotation = camera.CFrame.Rotation
         
         motionBlurConn = RunService.RenderStepped:Connect(function()
-            local currentCFrame = camera.CFrame
-            local angle = math.acos(math.clamp(currentCFrame.LookVector:Dot(lastCFrame.LookVector), -1, 1))
-            local speed = angle / (1/60)
-            blur.Size = math.clamp(speed * 3.5, 0, 14)
-            lastCFrame = currentCFrame
+            local currentRotation = camera.CFrame.Rotation
+            local deltaAngle = math.acos(math.clamp(currentRotation.LookVector:Dot(lastRotation.LookVector), -1, 1))
+            local targetBlurSize = math.clamp(deltaAngle * 18, 0, 5.5)
+            
+            blur.Size = blur.Size + (targetBlurSize - blur.Size) * 0.3
+            lastRotation = currentRotation
         end)
     end}
 }
@@ -400,10 +407,23 @@ for i, data in ipairs(shaderFuncs) do
     btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
     
-    btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
+    btn.MouseButton1Click:Connect(function() if data[1] == "Bật Motion Blur (Mượt)" then data[2]() else resetLightingComplete() data[2]() end end)
 end
 
--- NÚT XÓA RIÊNG BÓNG LOÁNG (Reset độ bóng về ban đầu)
+-- NÚT XÓA RIÊNG MOTION BLUR
+local ResetBlurBtn = create("TextButton", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 38), 
+    Position = UDim2.new(0.05, 0, 1, -142), 
+    BackgroundColor3 = Color3.fromRGB(13, 148, 136), 
+    Text = "TẮT MOTION BLUR", 
+    TextColor3 = Color3.fromRGB(255, 255, 255), 
+    TextSize = 13,
+    Font = Enum.Font.GothamBold
+})
+create("UICorner", ResetBlurBtn, {CornerRadius = UDim.new(0, 6)})
+ResetBlurBtn.MouseButton1Click:Connect(disableMotionBlurOnly)
+
+-- NÚT XÓA RIÊNG BÓNG LOÁNG
 local ResetReflectBtn = create("TextButton", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 38), 
     Position = UDim2.new(0.05, 0, 1, -95), 
