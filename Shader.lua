@@ -35,10 +35,10 @@ local ToggleBtn = create("TextButton", ScreenGui, {
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
 create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
 
--- 2. Tùy chỉnh Menu (Giao diện Dark Theme cao cấp)
+-- 2. Tùy chỉnh Menu (Giao diện tăng kích thước để vừa Slider mới)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 260, 0, 450), 
-    Position = UDim2.new(0.5, -130, 0.5, -225), 
+    Size = UDim2.new(0, 260, 0, 510), 
+    Position = UDim2.new(0.5, -130, 0.5, -255), 
     BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
@@ -57,7 +57,7 @@ local MenuTitle = create("TextLabel", MainMenu, {
 
 -- Khung chứa danh sách nút cuộn mượt
 local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(1, -20, 1, -110),
+    Size = UDim2.new(1, -20, 1, -170),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
     CanvasSize = UDim2.new(0, 0, 0, 420),
@@ -143,7 +143,7 @@ end)
 -- Thanh Slider tùy chỉnh kích thước FPS UI trong Menu
 local SliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -100),
+    Position = UDim2.new(0.05, 0, 1, -160),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -187,10 +187,88 @@ UserInputService.InputChanged:Connect(function(input)
         local percentage = math.clamp((mousePos - barLeft) / barWidth, 0, 1)
         SliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7)
         
-        -- Tính toán scale size tương ứng (từ 12px đến 32px)
         local targetSize = 12 + (percentage * 20)
         FpsLabel.TextSize = targetSize
         FpsFrame.Size = UDim2.new(0, targetSize * 6, 0, targetSize * 2)
+    end
+end)
+
+-- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG sàn/tường/nền (0 -> 100%)
+local ReflectSliderFrame = create("Frame", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 45),
+    Position = UDim2.new(0.05, 0, 1, -105),
+    BackgroundColor3 = Color3.fromRGB(30, 41, 59)
+})
+create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
+
+local ReflectSliderLabel = create("TextLabel", ReflectSliderFrame, {
+    Size = UDim2.new(1, 0, 0, 20),
+    BackgroundTransparency = 1,
+    Text = "Độ Bóng Loáng: 0%",
+    TextColor3 = Color3.fromRGB(148, 163, 184),
+    TextSize = 11,
+    Font = Enum.Font.GothamSemibold
+})
+
+local ReflectSliderBar = create("Frame", ReflectSliderFrame, {
+    Size = UDim2.new(0.8, 0, 0, 6),
+    Position = UDim2.new(0.1, 0, 0.65, 0),
+    BackgroundColor3 = Color3.fromRGB(51, 65, 85)
+})
+create("UICorner", ReflectSliderBar, {CornerRadius = UDim.new(0, 3)})
+
+local ReflectSliderBtn = create("TextButton", ReflectSliderBar, {
+    Size = UDim2.new(0, 14, 0, 14),
+    Position = UDim2.new(0, -7, 0.5, -7),
+    BackgroundColor3 = Color3.fromRGB(56, 189, 248),
+    Text = ""
+})
+create("UICorner", ReflectSliderBtn, {CornerRadius = UDim.new(0, 7)})
+
+local ReflectActive = false
+local currentGlossValue = 0
+
+-- Hàm tối ưu siêu mượt quét khối cập nhật độ bóng loáng nhanh gọn
+local function updateWorldReflection(glossPercentage)
+    local visualValue = math.floor(glossPercentage * 100)
+    ReflectSliderLabel.Text = "Độ Bóng Loáng: " .. visualValue .. "%"
+    
+    local parts = Workspace:GetDescendants()
+    -- Chia nhỏ luồng quét vật thể lớn tránh lag tụt FPS
+    for i = 1, #parts do
+        local object = parts[i]
+        if object:IsA("BasePart") then
+            -- Chỉ áp dụng lên các bề mặt có kích thước phẳng lớn (sàn, tường, nền) để tối ưu
+            if object.Size.X > 2 or object.Size.Z > 2 or object.Size.Y > 2 then
+                if glossPercentage > 0 then
+                    object.Material = Enum.Material.Glass
+                    object.Reflectance = glossPercentage
+                else
+                    object.Material = Enum.Material.SmoothPlastic
+                    object.Reflectance = 0
+                end
+            end
+        end
+        if i % 150 == 0 then task.wait() end -- Giới hạn chu kỳ quét mượt PC
+    end
+end
+
+ReflectSliderBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = true end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = false end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if ReflectActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local mousePos = input.Position.X
+        local barLeft = ReflectSliderBar.AbsolutePosition.X
+        local barWidth = ReflectSliderBar.AbsoluteSize.X
+        local percentage = math.clamp((mousePos - barLeft) / barWidth, 0, 1)
+        ReflectSliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7)
+        
+        currentGlossValue = percentage
+        updateWorldReflection(percentage)
     end
 end)
 
@@ -203,9 +281,8 @@ local function resetLightingComplete()
     if starConn then starConn:Disconnect() starConn = nil end
     if brightConn then brightConn:Disconnect() brightConn = nil end
     
-    -- Khôi phục Texture/Material gốc nếu có tối ưu nâng cao trước đó
     for part, mat in pairs(originalMaterials) do
-        if part and part:IsA("BasePart") then part.Material = mat end
+        if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end
     end
     table.clear(originalMaterials)
     
@@ -217,6 +294,9 @@ local function resetLightingComplete()
     Lighting.Brightness = 2
     Lighting.Ambient = Color3.fromRGB(128, 128, 128)
     Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    
+    ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
+    ReflectSliderLabel.Text = "Độ Bóng Loáng: 0%"
 end
 
 local function lockTime(targetTime)
@@ -238,7 +318,6 @@ local function spawnAdvancedNight()
     end)
 end
 
--- Khai báo danh sách các tính năng Shader cũ + Mới
 local shaderFuncs = {
     {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
     {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
@@ -246,8 +325,6 @@ local shaderFuncs = {
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
     {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
-    
-    -- TÍNH NĂNG MỚI THEO YÊU CẦU:
     {"Sáng đêm (Dễ đi đường)", function()
         lockTime(0)
         brightConn = RunService.Heartbeat:Connect(function()
@@ -257,18 +334,18 @@ local shaderFuncs = {
         end)
     end},
     {"Làm nét Texture + Tối ưu PC", function()
-        -- Quét tối ưu hóa và tăng cường độ chi tiết hiển thị không gây lag
-        for _, object in pairs(Workspace:GetDescendants()) do
+        local objects = Workspace:GetDescendants()
+        for i = 1, #objects do
+            local object = objects[i]
             if object:IsA("BasePart") then
                 if not originalMaterials[object] then originalMaterials[object] = object.Material end
-                -- Thay thế các chất liệu nặng bằng chất liệu mượt mà tăng chi tiết lưới đổ bóng tốt hơn
                 if object.Material == Enum.Material.Plastic or object.Material == Enum.Material.SmoothPlastic then
                     object.Material = Enum.Material.Concrete
                 end
             elseif object:IsA("Decal") or object:IsA("Texture") then
-                -- Ép buộc làm sạch cấu trúc texture không gây trễ bộ nhớ đệm render
                 object.LocalTransparencyModifier = object.LocalTransparencyModifier
             end
+            if i % 200 == 0 then task.wait() end
         end
     end}
 }
@@ -287,7 +364,6 @@ for i, data in ipairs(shaderFuncs) do
     create("UICorner", btn, {CornerRadius = UDim.new(0, 6)})
     create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
     
-    -- Hiệu ứng Hover tương tác cho nút hiện đại hơn
     btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
     
