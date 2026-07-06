@@ -34,7 +34,7 @@ local ToggleBtn = create("TextButton", ScreenGui, {
 })
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 25)})
 
--- 2. Tùy chỉnh Menu (Kích thước chuẩn, có ScrollingFrame chống tràn)
+-- 2. Tùy chỉnh Menu
 local MainMenu = create("Frame", ScreenGui, {
     Size = UDim2.new(0, 260, 0, 420), 
     Position = UDim2.new(0.5, -130, 0.5, -210), 
@@ -43,7 +43,7 @@ local MainMenu = create("Frame", ScreenGui, {
 })
 create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 8)})
 
--- 3. BẢNG HIỂN THỊ FPS ĐỒ HỌA ĐẸP (UI hiện FPS đang có)
+-- 3. BẢNG HIỂN THỊ FPS
 local FpsContainer = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 40),
     Position = UDim2.new(0.05, 0, 0, 10),
@@ -62,7 +62,6 @@ local FpsLabel = create("TextLabel", FpsContainer, {
     Font = Enum.Font.FredokaOne
 })
 
--- Đo lượng FPS thực tế liên tục
 local fpsCount = 0
 local lastUpdate = os.clock()
 RunService.RenderStepped:Connect(function()
@@ -80,12 +79,11 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
     Size = UDim2.new(0.92, 0, 0, 240),
     Position = UDim2.new(0.04, 0, 0, 60),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 720), -- Mở rộng vùng cuộn cho đống Shader mới
+    CanvasSize = UDim2.new(0, 0, 0, 720),
     ScrollBarThickness = 4,
     ScrollBarImageColor3 = Color3.fromRGB(0, 255, 150)
 })
 
--- Tính năng Bật/Tắt khi nhấn nút Vanut
 ToggleBtn.MouseButton1Click:Connect(function()
     MainMenu.Visible = not MainMenu.Visible
 end)
@@ -137,6 +135,30 @@ local function lockTime(targetTime)
     timeLockConn = RunService.Heartbeat:Connect(function() Lighting.ClockTime = targetTime end)
 end
 
+-- TÍNH NĂNG ĐẶC BIỆT: ÉP XUNG ĐỒ HỌA LEVEL 2 CHO ĐẸP NHƯ LEVEL CAO
+local function forceHighVisualOnLowGraphics()
+    -- Ép buộc hệ thống mở rộng công nghệ đổ bóng ShadowMap dù ở mức đồ họa thấp
+    sethiddenproperty(Lighting, "Technology", Enum.LightingTechnology.ShadowMap)
+    Lighting.GlobalShadows = true
+    Lighting.ShadowSoftness = 0.2
+    
+    -- Tăng cường chi tiết phản chiếu và độ trong suốt cho nước ở đồ họa thấp
+    if Workspace:FindFirstChildOfClass("Terrain") then
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        terrain.WaterWaveSize = 0.15
+        terrain.WaterWaveSpeed = 10
+        terrain.WaterReflectance = 0.5
+        terrain.WaterTransparency = 0.6
+    end
+    
+    -- Giữ nguyên chi tiết mô hình mà không giảm răng cưa thô bạo
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("MeshPart") then
+            obj.RenderFidelity = Enum.RenderFidelity.Precise
+        end
+    end
+end
+
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
     create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
@@ -150,46 +172,21 @@ local function spawnAdvancedNight()
     end)
 end
 
--- MỤC LÀM BÓNG & HIỆU ỨNG ĐẸP LÊN (Mở khóa max đồ họa siêu đẹp)
-local function maxGraphicsUltra()
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
-    Lighting.GlobalShadows = true
-    Lighting.ShadowSoftness = 0.1
-    sethiddenproperty(Lighting, "Technology", Enum.LightingTechnology.Future)
-    if Workspace:FindFirstChildOfClass("Terrain") then
-        local terrain = Workspace:FindFirstChildOfClass("Terrain")
-        sethiddenproperty(terrain, "Decoration", true)
-        terrain.WaterWaveSize = 0.2
-        terrain.WaterWaveSpeed = 15
-        terrain.WaterReflectance = 0.8
-        terrain.WaterTransparency = 0.7
-    end
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("MeshPart") then
-            obj.RenderFidelity = Enum.RenderFidelity.Precise
-            obj.CollisionFidelity = Enum.CollisionFidelity.Default
-        elseif obj:IsA("BasePart") then
-            obj.CastShadow = true
-        end
-    end
-end
-
--- TỔNG HỢP DANH SÁCH NHIỀU SHADER ĐẸP MỚI VÀ CŨ
+-- DANH SÁCH SHADER TỰ ĐỘNG ÉP ĐỒ HỌA ĐẸP KHI BẤM
 local shaderFuncs = {
-    {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
-    {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
-    {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4}) end},
-    {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
-    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
-    -- Shader đẹp bổ sung thêm:
-    {"Giấc Mơ Anime (Soft)", function() lockTime(15.5) Lighting.Brightness = 2.7 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 225, 225), Saturation = 0.25}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.45, Size = 16}) end},
-    {"Nắng Mùa Hè Cực Hạn", function() lockTime(12.5) Lighting.Brightness = 3.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.2, Contrast = 0.12}) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.45}) end},
-    {"Đồ Họa HDR Siêu Thực", function() lockTime(14) Lighting.Brightness = 3.0 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Contrast = 0.3, Saturation = 0.15}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10}) end},
-    {"Sương Mù Huyền Ảo", function() lockTime(5.8) Lighting.Brightness = 1.4 create("Atmosphere", Lighting, {Name = "VanutAtmosphere", Density = 0.7, Color = Color3.fromRGB(190, 200, 210)}) end},
-    {"Tone Lạnh Bắc Cực", function() lockTime(10) Lighting.Brightness = 2.3 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(205, 235, 255), Saturation = -0.15}) end},
-    {"U Ám Kinh Dị (Horror)", function() lockTime(19.5) Lighting.Brightness = 0.4 Lighting.Ambient = Color3.fromRGB(15,15,15) create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.5, Contrast = 0.3}) end},
-    {"Màu Film Hoài Cổ (Vibe)", function() lockTime(17) Lighting.Brightness = 2.4 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 240, 200), Saturation = -0.05, Contrast = 0.08}) end}
+    {"Bình minh vàng", function() forceHighVisualOnLowGraphics() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
+    {"Trưa nắng rực rỡ", function() forceHighVisualOnLowGraphics() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
+    {"Hoàng hôn hồng", function() forceHighVisualOnLowGraphics() lockTime(17.8) Lighting.Brightness = 2.5 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4}) end},
+    {"Đêm nhiều sao", function() forceHighVisualOnLowGraphics() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
+    {"Cinematic Lofi", function() forceHighVisualOnLowGraphics() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
+    {"Cyberpunk Neon", function() forceHighVisualOnLowGraphics() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
+    {"Giấc Mơ Anime (Soft)", function() forceHighVisualOnLowGraphics() lockTime(15.5) Lighting.Brightness = 2.7 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 225, 225), Saturation = 0.25}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.45, Size = 16}) end},
+    {"Nắng Mùa Hè Cực Hạn", function() forceHighVisualOnLowGraphics() lockTime(12.5) Lighting.Brightness = 3.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.2, Contrast = 0.12}) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.45}) end},
+    {"Đồ Họa HDR Siêu Thực", function() forceHighVisualOnLowGraphics() lockTime(14) Lighting.Brightness = 3.0 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Contrast = 0.3, Saturation = 0.15}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10}) end},
+    {"Sương Mù Huyền Ảo", function() forceHighVisualOnLowGraphics() lockTime(5.8) Lighting.Brightness = 1.4 create("Atmosphere", Lighting, {Name = "VanutAtmosphere", Density = 0.7, Color = Color3.fromRGB(190, 200, 210)}) end},
+    {"Tone Lạnh Bắc Cực", function() forceHighVisualOnLowGraphics() lockTime(10) Lighting.Brightness = 2.3 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(205, 235, 255), Saturation = -0.15}) end},
+    {"U Ám Kinh Dị (Horror)", function() forceHighVisualOnLowGraphics() lockTime(19.5) Lighting.Brightness = 0.4 Lighting.Ambient = Color3.fromRGB(15,15,15) create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.5, Contrast = 0.3}) end},
+    {"Màu Film Hoài Cổ (Vibe)", function() forceHighVisualOnLowGraphics() lockTime(17) Lighting.Brightness = 2.4 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 240, 200), Saturation = -0.05, Contrast = 0.08}) end}
 }
 
 -- Tính năng Tối ưu FPS
@@ -231,21 +228,18 @@ local function ultraBoostFPS()
     sethiddenproperty(Lighting, "Technology", Enum.LightingTechnology.Compatibility)
 end
 
--- Hàm tạo Animation Click co giãn mượt mà khi chọn nút
+-- Hàm tạo Animation Click
 local function playClickAnimation(button)
     local originalSize = button.Size
     local originalColor = button.BackgroundColor3
-    
     local shrinkTween = TweenService:Create(button, TweenInfo.new(0.08, Enum.EasingStyle.QuadOut), {
         Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset - 8, originalSize.Y.Scale, originalSize.Y.Offset - 3),
         BackgroundColor3 = Color3.fromRGB(35, 70, 120)
     })
-    
     local returnTween = TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.QuadIn), {
         Size = originalSize,
         BackgroundColor3 = originalColor
     })
-    
     shrinkTween:Play()
     shrinkTween.Completed:Connect(function() returnTween:Play() end)
 end
@@ -270,12 +264,12 @@ for i, data in ipairs(shaderFuncs) do
     end)
 end
 
--- NÚT LÀM BÓNG & HIỆU ỨNG SIÊU ĐẸP (FUTURE)
-local UltraGraphicsBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 30), Position = UDim2.new(0.05, 0, 0, 305), BackgroundColor3 = Color3.fromRGB(150, 80, 20), Text = "✨ BẬT BÓNG & ĐỒ HỌA ĐẸP lên", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
+-- NÚT ÉP XUNG ĐỒ HỌA MỨC 2 CHO ĐẸP LÊN
+local UltraGraphicsBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 30), Position = UDim2.new(0.05, 0, 0, 305), BackgroundColor3 = Color3.fromRGB(150, 80, 20), Text = "✨ ÉP ĐỒ HỌA ĐẸP (Giữ Mức 2)", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
 create("UICorner", UltraGraphicsBtn, {CornerRadius = UDim.new(0, 6)})
 UltraGraphicsBtn.MouseButton1Click:Connect(function()
     playClickAnimation(UltraGraphicsBtn)
-    maxGraphicsUltra()
+    forceHighVisualOnLowGraphics()
 end)
 
 -- Nút BOOST FPS TOÁN DIỆN
