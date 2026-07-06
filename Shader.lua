@@ -35,10 +35,10 @@ local ToggleBtn = create("TextButton", ScreenGui, {
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
 create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
 
--- 2. Tùy chỉnh Menu (Giao diện tăng kích thước để vừa Slider mới)
+-- 2. Tùy chỉnh Menu (Tăng chiều cao lên 560 để vừa nút Reset Bóng Loáng)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 260, 0, 510), 
-    Position = UDim2.new(0.5, -130, 0.5, -255), 
+    Size = UDim2.new(0, 260, 0, 560), 
+    Position = UDim2.new(0.5, -130, 0.5, -280), 
     BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
@@ -57,10 +57,10 @@ local MenuTitle = create("TextLabel", MainMenu, {
 
 -- Khung chứa danh sách nút cuộn mượt
 local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(1, -20, 1, -170),
+    Size = UDim2.new(1, -20, 1, -220),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 420),
+    CanvasSize = UDim2.new(0, 0, 0, 460),
     ScrollBarThickness = 2,
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
@@ -143,7 +143,7 @@ end)
 -- Thanh Slider tùy chỉnh kích thước FPS UI trong Menu
 local SliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -160),
+    Position = UDim2.new(0.05, 0, 1, -210),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -193,10 +193,10 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG sàn/tường/nền (0 -> 100%)
+-- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG ĐỒ HỌA CAO (Dành cho cấu hình thấp)
 local ReflectSliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -105),
+    Position = UDim2.new(0.05, 0, 1, -155),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -204,7 +204,7 @@ create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
 local ReflectSliderLabel = create("TextLabel", ReflectSliderFrame, {
     Size = UDim2.new(1, 0, 0, 20),
     BackgroundTransparency = 1,
-    Text = "Độ Bóng Loáng: 0%",
+    Text = "Độ Bóng Đồ Họa Cao: 0%",
     TextColor3 = Color3.fromRGB(148, 163, 184),
     TextSize = 11,
     Font = Enum.Font.GothamSemibold
@@ -228,28 +228,25 @@ create("UICorner", ReflectSliderBtn, {CornerRadius = UDim.new(0, 7)})
 local ReflectActive = false
 local currentGlossValue = 0
 
--- Hàm tối ưu siêu mượt quét khối cập nhật độ bóng loáng nhanh gọn
 local function updateWorldReflection(glossPercentage)
     local visualValue = math.floor(glossPercentage * 100)
-    ReflectSliderLabel.Text = "Độ Bóng Loáng: " .. visualValue .. "%"
+    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: " .. visualValue .. "%"
     
     local parts = Workspace:GetDescendants()
-    -- Chia nhỏ luồng quét vật thể lớn tránh lag tụt FPS
     for i = 1, #parts do
         local object = parts[i]
         if object:IsA("BasePart") then
-            -- Chỉ áp dụng lên các bề mặt có kích thước phẳng lớn (sàn, tường, nền) để tối ưu
             if object.Size.X > 2 or object.Size.Z > 2 or object.Size.Y > 2 then
                 if glossPercentage > 0 then
-                    object.Material = Enum.Material.Glass
-                    object.Reflectance = glossPercentage
+                    object.Material = Enum.Material.Metal
+                    object.Reflectance = glossPercentage * 0.45 
                 else
                     object.Material = Enum.Material.SmoothPlastic
                     object.Reflectance = 0
                 end
             end
         end
-        if i % 150 == 0 then task.wait() end -- Giới hạn chu kỳ quét mượt PC
+        if i % 200 == 0 then task.wait() end 
     end
 end
 
@@ -273,13 +270,35 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- Hệ thống Shader & Tính năng bổ sung tối ưu hóa
-local timeLockConn, starConn, brightConn
+local timeLockConn, starConn, brightConn, motionBlurConn
 local originalMaterials = {}
+
+-- Hàm tắt riêng độ bóng và reset thanh trượt bóng loáng về 0%
+local function resetReflectionOnly()
+    ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
+    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
+    currentGlossValue = 0
+    
+    local parts = Workspace:GetDescendants()
+    for i = 1, #parts do
+        local object = parts[i]
+        if object:IsA("BasePart") then
+            if originalMaterials[object] then
+                object.Material = originalMaterials[object]
+            else
+                object.Material = Enum.Material.SmoothPlastic
+            end
+            object.Reflectance = 0
+        end
+        if i % 200 == 0 then task.wait() end
+    end
+end
 
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     if starConn then starConn:Disconnect() starConn = nil end
     if brightConn then brightConn:Disconnect() brightConn = nil end
+    if motionBlurConn then motionBlurConn:Disconnect() motionBlurConn = nil end
     
     for part, mat in pairs(originalMaterials) do
         if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end
@@ -287,7 +306,7 @@ local function resetLightingComplete()
     table.clear(originalMaterials)
     
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
-    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do 
+    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky", "VanutMotionBlur"}) do 
         local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
     end
     Lighting.ClockTime = 14
@@ -296,7 +315,7 @@ local function resetLightingComplete()
     Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
     
     ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
-    ReflectSliderLabel.Text = "Độ Bóng Loáng: 0%"
+    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
 end
 
 local function lockTime(targetTime)
@@ -347,6 +366,20 @@ local shaderFuncs = {
             end
             if i % 200 == 0 then task.wait() end
         end
+    end},
+    {"Bật Motion Blur (Mượt)", function()
+        if motionBlurConn then motionBlurConn:Disconnect() end
+        local blur = Lighting:FindFirstChild("VanutMotionBlur") or create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0})
+        local camera = Workspace.CurrentCamera
+        local lastCFrame = camera.CFrame
+        
+        motionBlurConn = RunService.RenderStepped:Connect(function()
+            local currentCFrame = camera.CFrame
+            local angle = math.acos(math.clamp(currentCFrame.LookVector:Dot(lastCFrame.LookVector), -1, 1))
+            local speed = angle / (1/60)
+            blur.Size = math.clamp(speed * 3.5, 0, 14)
+            lastCFrame = currentCFrame
+        end)
     end}
 }
 
@@ -370,12 +403,25 @@ for i, data in ipairs(shaderFuncs) do
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
--- Nút xóa Shader chân trang Menu
+-- NÚT XÓA RIÊNG BÓNG LOÁNG (Reset độ bóng về ban đầu)
+local ResetReflectBtn = create("TextButton", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 38), 
+    Position = UDim2.new(0.05, 0, 1, -95), 
+    BackgroundColor3 = Color3.fromRGB(217, 119, 6), 
+    Text = "XÓA BÓNG LOÁNG", 
+    TextColor3 = Color3.fromRGB(255, 255, 255), 
+    TextSize = 13,
+    Font = Enum.Font.GothamBold
+})
+create("UICorner", ResetReflectBtn, {CornerRadius = UDim.new(0, 6)})
+ResetReflectBtn.MouseButton1Click:Connect(resetReflectionOnly)
+
+-- Nút xóa toàn bộ Shader chân trang Menu
 local ResetBtn = create("TextButton", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 38), 
     Position = UDim2.new(0.05, 0, 1, -48), 
     BackgroundColor3 = Color3.fromRGB(239, 68, 68), 
-    Text = "XÓA SHADER", 
+    Text = "XÓA SHADER ALL", 
     TextColor3 = Color3.fromRGB(255, 255, 255), 
     TextSize = 13,
     Font = Enum.Font.GothamBold
