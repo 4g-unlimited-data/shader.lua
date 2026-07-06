@@ -37,8 +37,8 @@ create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness =
 
 -- 2. Tùy chỉnh Menu
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 260, 0, 560), 
-    Position = UDim2.new(0.5, -130, 0.5, -280), 
+    Size = UDim2.new(0, 260, 0, 605), 
+    Position = UDim2.new(0.5, -130, 0.5, -302), 
     BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
@@ -57,7 +57,7 @@ local MenuTitle = create("TextLabel", MainMenu, {
 
 -- Khung chứa danh sách nút cuộn mượt
 local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(1, -20, 1, -220),
+    Size = UDim2.new(1, -20, 1, -265),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
     CanvasSize = UDim2.new(0, 0, 0, 460),
@@ -143,7 +143,7 @@ end)
 -- Thanh Slider tùy chỉnh kích thước FPS UI
 local SliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -210),
+    Position = UDim2.new(0.05, 0, 1, -255),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -196,7 +196,7 @@ end)
 -- Thanh Slider tùy chỉnh ĐỘ BÓNG LOÁNG ĐỒ HỌA CAO CHUẨN ĐẸP MƯỢT
 local ReflectSliderFrame = create("Frame", MainMenu, {
     Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -155),
+    Position = UDim2.new(0.05, 0, 1, -200),
     BackgroundColor3 = Color3.fromRGB(30, 41, 59)
 })
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -269,7 +269,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Hệ thống Shader nâng cao bóng đổ
+-- Hệ thống Shader & Tính năng bổ sung tối ưu hóa
 local timeLockConn, starConn, brightConn
 local originalMaterials = {}
 
@@ -293,26 +293,18 @@ local function resetReflectionOnly()
     end
 end
 
--- HÀM THIẾT LẬP ĐỔ BÓNG NÉT VÀ ĐẬM CHI TIẾT
-local function applySharpHighShadows()
-    -- Ép render ánh sáng tính toán bóng đổ thời gian thực sắc nét
-    Lighting.ShadowMapDisplayDistance = 350
-    Lighting.GlobalShadows = true
-    
-    -- Điều chỉnh tương phản hướng để đổ bóng đậm và rõ ràng nhất
-    local cc = Lighting:FindFirstChild("VanutShadowCC") or create("ColorCorrectionEffect", Lighting, {Name = "VanutShadowCC"})
-    cc.Contrast = 0.1
-    cc.Saturation = 0.05
-    
-    -- Đẩy độ rực bóng tối của Lighting
-    Lighting.Ambient = Color3.fromRGB(45, 45, 50)
-    Lighting.OutdoorAmbient = Color3.fromRGB(60, 60, 65)
+-- Hàm tắt Motion Blur mới
+local function disableMotionBlurOnly()
+    RunService:UnbindFromRenderStep("VanutMotionBlurUpdate")
+    local blur = Lighting:FindFirstChild("VanutMotionBlur")
+    if blur then blur:Destroy() end
 end
 
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     if starConn then starConn:Disconnect() starConn = nil end
     if brightConn then brightConn:Disconnect() brightConn = nil end
+    disableMotionBlurOnly()
     
     for part, mat in pairs(originalMaterials) do
         if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end
@@ -320,15 +312,13 @@ local function resetLightingComplete()
     table.clear(originalMaterials)
     
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
-    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky", "VanutShadowCC"}) do 
+    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do 
         local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
     end
-    
     Lighting.ClockTime = 14
     Lighting.Brightness = 2
     Lighting.Ambient = Color3.fromRGB(128, 128, 128)
     Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    Lighting.ShadowMapDisplayDistance = 150
     
     ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
     ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
@@ -354,12 +344,12 @@ local function spawnAdvancedNight()
 end
 
 local shaderFuncs = {
-    {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) applySharpHighShadows() end},
-    {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) applySharpHighShadows() end},
-    {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4}) applySharpHighShadows() end},
-    {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() applySharpHighShadows() end},
-    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) applySharpHighShadows() end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) applySharpHighShadows() end},
+    {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
+    {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
+    {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4}) end},
+    {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
+    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
+    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
     {"Sáng đêm (Dễ đi đường)", function()
         lockTime(0)
         brightConn = RunService.Heartbeat:Connect(function()
@@ -382,6 +372,25 @@ local shaderFuncs = {
             end
             if i % 200 == 0 then task.wait() end
         end
+    end},
+    -- LÀM MỚI: TẬP TRUNG TỐI ƯU CẬP NHẬT FRAME KHÔNG TRỄ
+    {"Bật Motion Blur (Mượt)", function()
+        disableMotionBlurOnly()
+        local blur = Lighting:FindFirstChild("VanutMotionBlur") or create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0})
+        local camera = Workspace.CurrentCamera
+        local lastRotation = camera.CFrame.Rotation
+        
+        -- Chạy ưu tiên cao nhất trước khi vẽ khung hình lên màn hình
+        RunService:BindToRenderStep("VanutMotionBlurUpdate", Enum.RenderPriority.Camera.Value + 1, function()
+            local currentRotation = camera.CFrame.Rotation
+            local deltaAngle = math.acos(math.clamp(currentRotation.LookVector:Dot(lastRotation.LookVector), -1, 1))
+            
+            -- Ép chặt giới hạn nhòe cực thấp (Max size 3.5) để chỉ tạo cảm giác mượt chuyển động mà không làm mất chi tiết hình ảnh
+            local targetBlurSize = math.clamp(deltaAngle * 12, 0, 3.5)
+            
+            blur.Size = blur.Size + (targetBlurSize - blur.Size) * 0.4
+            lastRotation = currentRotation
+        end)
     end}
 }
 
@@ -402,8 +411,21 @@ for i, data in ipairs(shaderFuncs) do
     btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
     btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
     
-    btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
+    btn.MouseButton1Click:Connect(function() if data[1] == "Bật Motion Blur (Mượt)" then data[2]() else resetLightingComplete() data[2]() end end)
 end
+
+-- NÚT XÓA RIÊNG MOTION BLUR
+local ResetBlurBtn = create("TextButton", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 38), 
+    Position = UDim2.new(0.05, 0, 1, -142), 
+    BackgroundColor3 = Color3.fromRGB(13, 148, 136), 
+    Text = "TẮT MOTION BLUR", 
+    TextColor3 = Color3.fromRGB(255, 255, 255), 
+    TextSize = 13,
+    Font = Enum.Font.GothamBold
+})
+create("UICorner", ResetBlurBtn, {CornerRadius = UDim.new(0, 6)})
+ResetBlurBtn.MouseButton1Click:Connect(disableMotionBlurOnly)
 
 -- NÚT XÓA RIÊNG BÓNG LOÁNG
 local ResetReflectBtn = create("TextButton", MainMenu, {
