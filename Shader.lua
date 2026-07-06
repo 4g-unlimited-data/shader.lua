@@ -1,5 +1,5 @@
 -- [[ vanut v6.4 / rimuru tempest - Ultimate Minimalist Mobile Edition ]] --
-print("GUI script running") -- Debug 1: Check xem script có chạy hay không
+print("GUI script running")
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -8,31 +8,10 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
--- Fix 1: Khởi tạo giá trị biến ngay lập tức để tránh lỗi crash do biến chưa tồn tại
 local currentGloss = 20
 local connections = {}
 local isGuiDestroyed = false
 local isApplying = false
-
--- Debug 5: Tạo nút test độc lập đẩy thẳng vào CoreGui để cô lập lỗi Executor/Inject
-task.spawn(function()
-    pcall(function()
-        local test = Instance.new("ScreenGui")
-        test.Name = "Vanut_Test_CoreGui"
-        test.DisplayOrder = 9999
-        test.Parent = game:GetService("CoreGui")
-        
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0, 120, 0, 30)
-        b.Position = UDim2.new(0, 10, 0, 60)
-        b.Text = "[ TEST BUTTON ]"
-        b.TextColor3 = Color3.fromRGB(255, 0, 0)
-        b.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        b.Parent = test
-        task.wait(5)
-        test:Destroy()
-    end)
-end)
 
 -- Cache default settings safely
 local defaults = {
@@ -50,11 +29,7 @@ local defaults = {
     ColorShift_Bottom = Lighting.ColorShift_Bottom,
 }
 
--- Fix 2: Giảm timeout PlayerGui xuống 5s + Ép chuẩn sang CoreGui nếu quá hạn
-local targetGui = player:WaitForChild("PlayerGui", 5)
-if not targetGui then 
-    targetGui = game:GetService("CoreGui") 
-end
+local targetGui = player:WaitForChild("PlayerGui")
 
 -- Remove any old instances to avoid duplicates
 if targetGui:FindFirstChild("Vanut_Rimuru_v64") then 
@@ -87,15 +62,31 @@ local function clearCustomEffects()
     end
 end
 
--- Fix 3: Khởi tạo ScreenGui với định danh Parent chuẩn hóa cưỡng bức, tăng DisplayOrder lên 999
+-- Fix 4 & 2: Đẩy DisplayOrder lên 1,000,000 và trả về ZIndexBehavior.Global chống đè hiển thị hoàn toàn
 local ScreenGui = create("ScreenGui", targetGui, {
     Name = "Vanut_Rimuru_v64", 
     ResetOnSpawn = false, 
     ZIndexBehavior = Enum.ZIndexBehavior.Global,
-    DisplayOrder = 999, 
+    DisplayOrder = 1000000, 
     IgnoreGuiInset = true,
     Enabled = true
 })
+
+-- Fix 5: Thêm nhãn MENU TEST cưỡng bức sau 1 giây kiểm tra lớp render layer
+task.delay(1, function()
+    pcall(function()
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(0, 300, 0, 60)
+        t.Position = UDim2.new(0, 50, 0, 200)
+        t.Text = "MENU TEST"
+        t.TextScaled = true
+        t.TextColor3 = Color3.fromRGB(255, 255, 0)
+        t.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        t.ZIndex = 1000000
+        t.Parent = ScreenGui
+        task.delay(5, function() pcall(function() t:Destroy() end) end)
+    end)
+end)
 
 local function destroyGuiAndDisconnect()
     if isGuiDestroyed then return end
@@ -148,7 +139,6 @@ local function resetLightingComplete()
 end
 
 -- UI Toggle Configuration Base Setup
--- Fix 4: Ép Visible = true ngay tại khối khởi tạo thuộc tính khởi điểm, loại bỏ hoàn toàn cơ chế phụ thuộc Loading Thread
 local ToggleMenuBtn = create("TextButton", ScreenGui, {
     Size = UDim2.new(0, 36, 0, 36),
     Position = UDim2.new(0, 10, 0, 10),
@@ -159,36 +149,44 @@ local ToggleMenuBtn = create("TextButton", ScreenGui, {
     Font = Enum.Font.GothamBold,
     TextSize = 16,
     Visible = true, 
-    Active = false,
-    ZIndex = 5
+    Active = true,
+    ZIndex = 999999
 }) addCorner(ToggleMenuBtn, 18) addStroke(ToggleMenuBtn)
 
+-- Fix 3: Ép bung toàn màn hình chống lỗi clip sai tỉ lệ / lệch góc trên mobile executor công phá layer
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 340, 0, 260),
-    Position = UDim2.new(0.5, -170, 0.35, -130),
+    Size = UDim2.new(1, 0, 1, 0),
+    Position = UDim2.new(0, 0, 0, 0),
     BackgroundColor3 = Color3.fromRGB(10, 16, 28),
-    Visible = false,
-    Active = false,
-    ZIndex = 10
-}) addCorner(MainMenu, 8) addStroke(MainMenu)
+    Visible = true,
+    Active = true,
+    ZIndex = 999999
+}) addCorner(MainMenu, 0)
 
-create("TextLabel", MainMenu, {
+local MainMenuContainer = create("Frame", MainMenu, {
+    Size = UDim2.new(0, 340, 0, 260),
+    Position = UDim2.new(0.5, -170, 0.5, -130),
+    BackgroundColor3 = Color3.fromRGB(10, 16, 28),
+    ZIndex = 100000
+}) addCorner(MainMenuContainer, 8) addStroke(MainMenuContainer)
+
+create("TextLabel", MainMenuContainer, {
     Size = UDim2.new(1, 0, 0, 30),
     BackgroundColor3 = Color3.fromRGB(16, 26, 44),
     Text = "BẢNG ĐIỀU KHIỂN - RIMURU ENGINE V6.4 SHADER",
     TextColor3 = Color3.fromRGB(255, 255, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 11,
-    ZIndex = 11
-}) addCorner(MainMenu:FindFirstChildOfClass("TextLabel"), 8)
+    ZIndex = 100001
+}) addCorner(MainMenuContainer:FindFirstChildOfClass("TextLabel"), 8)
 
-table.insert(connections, ToggleMenuBtn.Activated:Connect(function()
+table.insert(connections, ToggleMenuBtn.MouseButton1Click:Connect(function()
     if isGuiDestroyed then return end
     MainMenu.Visible = not MainMenu.Visible
 end))
 
-local TabContainer = create("Frame", MainMenu, {Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(14, 22, 38), ZIndex = 11})
-local ContentContainer = create("Frame", MainMenu, {Size = UDim2.new(1, -12, 1, -68), Position = UDim2.new(0, 6, 0, 62), BackgroundTransparency = 1, ZIndex = 11})
+local TabContainer = create("Frame", MainMenuContainer, {Size = UDim2.new(1, 0, 0, 28), Position = UDim2.new(0, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(14, 22, 38), ZIndex = 100001})
+local ContentContainer = create("Frame", MainMenuContainer, {Size = UDim2.new(1, -12, 1, -68), Position = UDim2.new(0, 6, 0, 62), BackgroundTransparency = 1, ZIndex = 100001})
 local Pages = {}
 
 local function createTab(name, order, pageFrame)
@@ -204,10 +202,10 @@ local function createTab(name, order, pageFrame)
         Font = Enum.Font.GothamBold, 
         TextSize = 10, 
         BorderSizePixel = 0, 
-        ZIndex = 12
+        ZIndex = 100002
     })
     
-    table.insert(connections, tBtn.Activated:Connect(function()
+    table.insert(connections, tBtn.MouseButton1Click:Connect(function()
         if isGuiDestroyed then return end
         for k, p in pairs(Pages) do p.Visible = (k == name) end
         for _, btn in pairs(TabContainer:GetChildren()) do if btn:IsA("TextButton") then btn.BackgroundColor3, btn.TextColor3 = Color3.fromRGB(18, 28, 46), Color3.fromRGB(140, 160, 180) end end
@@ -246,12 +244,12 @@ local function makeDraggable(f, h)
 end
 
 makeDraggable(ToggleMenuBtn, ToggleMenuBtn) 
-makeDraggable(MainMenu, MainMenu:FindFirstChildOfClass("TextLabel"))
+makeDraggable(MainMenuContainer, MainMenuContainer:FindFirstChildOfClass("TextLabel"))
 
 -- =======================================================================
 -- TAB 1: SHADER ENGINE
 -- =======================================================================
-local PageShader = create("ScrollingFrame", nil, {CanvasSize = UDim2.new(0, 0, 0, 310), ScrollBarThickness = 2, BackgroundTransparency = 1, BorderSizePixel = 0, Active = false, ScrollingEnabled = true, ZIndex = 12}) create("UIListLayout", PageShader, {Padding = UDim.new(0, 4)})
+local PageShader = create("ScrollingFrame", nil, {CanvasSize = UDim2.new(0, 0, 0, 310), ScrollBarThickness = 2, BackgroundTransparency = 1, BorderSizePixel = 0, Active = false, ScrollingEnabled = true, ZIndex = 100002}) create("UIListLayout", PageShader, {Padding = UDim.new(0, 4)})
 
 local function buildProtectedCallback(applyFunc)
     return function()
@@ -312,23 +310,23 @@ local shaderFuncs = {
 }
 
 for i, data in ipairs(shaderFuncs) do
-    local sb = create("TextButton", PageShader, {Size = UDim2.new(1, -4, 0, 32), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = "   " .. data[1], TextColor3 = Color3.fromRGB(200, 230, 255), Font = Enum.Font.Gotham, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 13}) addCorner(sb, 4) addStroke(sb)
-    table.insert(connections, sb.Activated:Connect(buildProtectedCallback(data[2])))
+    local sb = create("TextButton", PageShader, {Size = UDim2.new(1, -4, 0, 32), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = "   " .. data[1], TextColor3 = Color3.fromRGB(200, 230, 255), Font = Enum.Font.Gotham, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 100003}) addCorner(sb, 4) addStroke(sb)
+    table.insert(connections, sb.MouseButton1Click:Connect(buildProtectedCallback(data[2])))
 end
 
-local ClearShaderBtn = create("TextButton", PageShader, {Size = UDim2.new(1, -4, 0, 32), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "❌ XÓA TOÀN BỘ CẤU HÌNH SHADER", TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 13}) addCorner(ClearShaderBtn, 4) addStroke(ClearShaderBtn)
-table.insert(connections, ClearShaderBtn.Activated:Connect(buildProtectedCallback(function() resetLightingComplete() end)))
+local ClearShaderBtn = create("TextButton", PageShader, {Size = UDim2.new(1, -4, 0, 32), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "❌ XÓA TOÀN BỘ CẤU HÌNH SHADER", TextColor3 = Color3.fromRGB(255, 255, 255), Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 100003}) addCorner(ClearShaderBtn, 4) addStroke(ClearShaderBtn)
+table.insert(connections, ClearShaderBtn.MouseButton1Click:Connect(buildProtectedCallback(function() resetLightingComplete() end)))
 
 createTab("Shader", 1, PageShader)
 
 -- =======================================================================
 -- TAB 2: ĐỘ BÓNG NÂNG CAO
 -- =======================================================================
-local PageGloss = create("Frame", nil, {ZIndex = 12})
-local SliderTitle = create("TextLabel", PageGloss, {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 15), BackgroundTransparency = 1, Text = "ĐỘ BÓNG BỀ MẶT PHẢN CHIẾU: 20 %", TextColor3 = Color3.fromRGB(0, 255, 180), Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 13})
-local SliderTrack = create("Frame", PageGloss, {Size = UDim2.new(1, -40, 0, 6), Position = UDim2.new(0, 20, 0, 45), BackgroundColor3 = Color3.fromRGB(25, 38, 60), ZIndex = 13}) addCorner(SliderTrack, 3)
-local SliderFill = create("Frame", SliderTrack, {Size = UDim2.new(0.2, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(0, 215, 255), ZIndex = 13}) addCorner(SliderFill, 3)
-local SliderBtn = create("TextButton", SliderTrack, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(0.2, -7, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255, 255, 255), Text = "", ZIndex = 14}) addCorner(SliderBtn, 7) addStroke(SliderBtn)
+local PageGloss = create("Frame", nil, {ZIndex = 100002})
+local SliderTitle = create("TextLabel", PageGloss, {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 15), BackgroundTransparency = 1, Text = "ĐỘ BÓNG BỀ MẶT PHẢN CHIẾU: 20 %", TextColor3 = Color3.fromRGB(0, 255, 180), Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 100003})
+local SliderTrack = create("Frame", PageGloss, {Size = UDim2.new(1, -40, 0, 6), Position = UDim2.new(0, 20, 0, 45), BackgroundColor3 = Color3.fromRGB(25, 38, 60), ZIndex = 100003}) addCorner(SliderTrack, 3)
+local SliderFill = create("Frame", SliderTrack, {Size = UDim2.new(0.2, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(0, 215, 255), ZIndex = 100003}) addCorner(SliderFill, 3)
+local SliderBtn = create("TextButton", SliderTrack, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(0.2, -7, 0.5, -7), BackgroundColor3 = Color3.fromRGB(255, 255, 255), Text = "", ZIndex = 100004}) addCorner(SliderBtn, 7) addStroke(SliderBtn)
 
 local sliderDragging = false
 local function updateSlider(input)
@@ -367,96 +365,9 @@ create("TextLabel", PageGloss, {
     TextWrapped = true, 
     TextXAlignment = Enum.TextXAlignment.Left, 
     TextYAlignment = Enum.TextYAlignment.Top, 
-    ZIndex = 13
+    ZIndex = 100003
 })
 
 createTab("Độ Bóng", 2, PageGloss)
 
--- =======================================================================
--- LOADING BAR SEQUENCER INTERACTION TREE
--- =======================================================================
-local LoadingGui = Instance.new("ScreenGui")
-LoadingGui.Name = "vanut_FPS_v64_LoadingScreen"
-LoadingGui.ResetOnSpawn = false
-LoadingGui.IgnoreGuiInset = true
-LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-LoadingGui.DisplayOrder = 999
-LoadingGui.Parent = targetGui
-
-local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Name = "LoadingFrame"
-LoadingFrame.Size = UDim2.new(0, 290, 0, 100)
-LoadingFrame.Position = UDim2.new(0.5, -145, 0.5, -50)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(15, 22, 36)
-LoadingFrame.BorderSizePixel = 0
-LoadingFrame.Parent = LoadingGui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = LoadingFrame
-
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(0, 213, 255)
-UIStroke.Parent = LoadingFrame
-
-local LoadingText = Instance.new("TextLabel")
-LoadingText.Name = "LoadingText"
-LoadingText.Size = UDim2.new(1, 0, 0, 30)
-LoadingText.Position = UDim2.new(0, 0, 0, 20)
-LoadingText.BackgroundTransparency = 1
-LoadingText.Text = "Đang khởi tạo vanut FPS v6.4..."
-LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.TextSize = 14
-LoadingText.Font = Enum.Font.GothamBold
-LoadingText.Parent = LoadingFrame
-
-local BarBackground = Instance.new("Frame")
-BarBackground.Name = "BarBackground"
-BarBackground.Size = UDim2.new(0, 250, 0, 4)
-BarBackground.Position = UDim2.new(0.5, -125, 0, 65)
-BarBackground.BackgroundColor3 = Color3.fromRGB(30, 42, 62)
-BarBackground.BorderSizePixel = 0
-BarBackground.Parent = LoadingFrame
-
-local BarCorner = Instance.new("UICorner")
-BarCorner.CornerRadius = UDim.new(0, 2)
-BarCorner.Parent = BarBackground
-
-local LoadingBar = Instance.new("Frame")
-LoadingBar.Name = "LoadingBar"
-LoadingBar.Size = UDim2.new(0, 0, 1, 0)
-LoadingBar.BackgroundColor3 = Color3.fromRGB(0, 213, 255)
-LoadingBar.BorderSizePixel = 0
-LoadingBar.Parent = BarBackground
-
-local ProgressCorner = Instance.new("UICorner")
-ProgressCorner.CornerRadius = UDim.new(0, 2)
-ProgressCorner.Parent = LoadingBar
-
--- Cô lập hoàn toàn Loading Thread, nếu crash tuyệt đối không ảnh hưởng đến nút ToggleMenuBtn chính
-task.spawn(function()
-    local success = pcall(function()
-        LoadingText.Text = "⚡ Khởi tạo lõi mượt mà V6.4..."
-        local t1 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.35, 0, 1, 0)})
-        if t1 then t1:Play() t1.Completed:Wait() end
-        task.wait(0.02)
-
-        LoadingText.Text = "🔍 Loại bỏ module cũ..."
-        local t2 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 1, 0)})
-        if t2 then t2:Play() t2.Completed:Wait() end
-        task.wait(0.02)
-
-        LoadingText.Text = "🚀 Cấu hình hiển thị Shader + Gloss..."
-        local t3 = TweenService:Create(LoadingBar, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
-        if t3 then t3:Play() t3.Completed:Wait() end
-        task.wait(0.02)
-    end)
-
-    pcall(function() LoadingGui:Destroy() end)
-    if success then
-        warn("🚀 vanut Ultimate V6.4 Minimalist đã sẵn sàng!")
-    end
-end)
-
-print("GUI script executed successfully to the end") -- Xác nhận chạy hết script mượt mà
+print("GUI script executed successfully to the end")
