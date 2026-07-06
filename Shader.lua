@@ -20,7 +20,7 @@ end
 -- ScreenGui chính
 local ScreenGui = create("ScreenGui", targetGui, {Name = "Vanut_Shader_Only", ResetOnSpawn = false})
 
--- 1. Nút Bật/Tắt Menu (Toggle Button)
+-- 1. Nút Bật/Tắt Menu (Toggle Button) phù hợp cho cả PC và Điện thoại
 local ToggleBtn = create("TextButton", ScreenGui, {
     Size = UDim2.new(0, 50, 0, 50),
     Position = UDim2.new(0.05, 0, 0.1, 0),
@@ -34,55 +34,63 @@ local ToggleBtn = create("TextButton", ScreenGui, {
 })
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 25)})
 
--- 2. Tùy chỉnh Menu (Tích hợp ScrollingFrame để cuộn được nhiều Shader hơn)
+-- 2. Tùy chỉnh Menu (Kích thước chuẩn, có ScrollingFrame chống tràn)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 250, 0, 380), 
-    Position = UDim2.new(0.5, -125, 0.5, -190), 
+    Size = UDim2.new(0, 260, 0, 420), 
+    Position = UDim2.new(0.5, -130, 0.5, -210), 
     BackgroundColor3 = Color3.fromRGB(10, 16, 28), 
     Visible = false
 })
 create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 8)})
 
--- Nhãn hiển thị FPS
-local FpsLabel = create("TextLabel", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 25),
-    Position = UDim2.new(0.05, 0, 0, 5),
+-- 3. BẢNG HIỂN THỊ FPS ĐỒ HỌA ĐẸP (UI hiện FPS đang có)
+local FpsContainer = create("Frame", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 40),
+    Position = UDim2.new(0.05, 0, 0, 10),
+    BackgroundColor3 = Color3.fromRGB(16, 26, 46),
+    BorderSizePixel = 0
+})
+create("UICorner", FpsContainer, {CornerRadius = UDim.new(0, 6)})
+create("UIStroke", FpsContainer, {Color = Color3.fromRGB(0, 255, 150), Thickness = 1})
+
+local FpsLabel = create("TextLabel", FpsContainer, {
+    Size = UDim2.new(1, 0, 1, 0),
     BackgroundTransparency = 1,
-    Text = "FPS: Đang tính...",
-    TextColor3 = Color3.fromRGB(0, 255, 128),
-    TextSize = 15,
-    Font = Enum.Font.SourceSansBold
+    Text = "FPS: ĐANG TÍNH...",
+    TextColor3 = Color3.fromRGB(0, 255, 150),
+    TextSize = 16,
+    Font = Enum.Font.FredokaOne
 })
 
--- ScrollingFrame chứa danh sách Shader và Boost
-local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(0.92, 0, 0, 230),
-    Position = UDim2.new(0.04, 0, 0, 35),
-    BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 540), -- Đủ chỗ cuộn cho nhiều Shader mới
-    ScrollBarThickness = 4,
-    ScrollBarImageColor3 = Color3.fromRGB(22, 38, 64)
-})
-
--- Đo FPS
+-- Đo lượng FPS thực tế liên tục
 local fpsCount = 0
 local lastUpdate = os.clock()
 RunService.RenderStepped:Connect(function()
     fpsCount = fpsCount + 1
     local now = os.clock()
     if now - lastUpdate >= 1 then
-        FpsLabel.Text = "FPS HIỆN TẠI: " .. fpsCount
+        FpsLabel.Text = "⚡ FPS: " .. fpsCount .. " ⚡"
         fpsCount = 0
         lastUpdate = now
     end
 end)
 
--- Tính năng Bật/Tắt Menu
+-- Vùng cuộn chứa các nút tính năng
+local ScrollFrame = create("ScrollingFrame", MainMenu, {
+    Size = UDim2.new(0.92, 0, 0, 240),
+    Position = UDim2.new(0.04, 0, 0, 60),
+    BackgroundTransparency = 1,
+    CanvasSize = UDim2.new(0, 0, 0, 720), -- Mở rộng vùng cuộn cho đống Shader mới
+    ScrollBarThickness = 4,
+    ScrollBarImageColor3 = Color3.fromRGB(0, 255, 150)
+})
+
+-- Tính năng Bật/Tắt khi nhấn nút Vanut
 ToggleBtn.MouseButton1Click:Connect(function()
     MainMenu.Visible = not MainMenu.Visible
 end)
 
--- Tính năng Di chuyển (Drag)
+-- Tính năng Di chuyển (Drag) Menu
 local dragging, dragInput, dragStart, startPos
 local function update(input)
     local delta = input.Position - dragStart
@@ -142,7 +150,31 @@ local function spawnAdvancedNight()
     end)
 end
 
--- Danh sách Shader (Đã cập nhật thêm nhiều Shader mới)
+-- MỤC LÀM BÓNG & HIỆU ỨNG ĐẸP LÊN (Mở khóa max đồ họa siêu đẹp)
+local function maxGraphicsUltra()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
+    Lighting.GlobalShadows = true
+    Lighting.ShadowSoftness = 0.1
+    sethiddenproperty(Lighting, "Technology", Enum.LightingTechnology.Future)
+    if Workspace:FindFirstChildOfClass("Terrain") then
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        sethiddenproperty(terrain, "Decoration", true)
+        terrain.WaterWaveSize = 0.2
+        terrain.WaterWaveSpeed = 15
+        terrain.WaterReflectance = 0.8
+        terrain.WaterTransparency = 0.7
+    end
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("MeshPart") then
+            obj.RenderFidelity = Enum.RenderFidelity.Precise
+            obj.CollisionFidelity = Enum.CollisionFidelity.Default
+        elseif obj:IsA("BasePart") then
+            obj.CastShadow = true
+        end
+    end
+end
+
+-- TỔNG HỢP DANH SÁCH NHIỀU SHADER ĐẸP MỚI VÀ CŨ
 local shaderFuncs = {
     {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35}) end},
     {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3}) end},
@@ -150,16 +182,17 @@ local shaderFuncs = {
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
     {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
-    -- Shader Mới Thêm Vào:
-    {"U ám Kinh dị", function() lockTime(18) Lighting.Brightness = 0.5 Lighting.Ambient = Color3.fromRGB(20,20,20) create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.6, Contrast = 0.2}) end},
-    {"Mùa đông lạnh lùng", function() lockTime(10) Lighting.Brightness = 2.0 Lighting.Ambient = Color3.fromRGB(150,180,220) create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(200,230,255), Saturation = -0.2}) end},
-    {"Nắng mùa hè rực rỡ", function() lockTime(13) Lighting.Brightness = 4.0 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.1}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.5}) end},
-    {"Giấc mơ Anime", function() lockTime(16) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255,220,220), Saturation = 0.2}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.4, Size = 15}) end},
-    {"Sương mù huyền bí", function() lockTime(6) Lighting.Brightness = 1.5 create("Atmosphere", Lighting, {Name = "VanutAtmosphere", Density = 0.75, Color = Color3.fromRGB(180,190,200)}) end},
-    {"Giả lập HDR cao cấp", function() lockTime(12) Lighting.Brightness = 3.0 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Contrast = 0.25, Saturation = 0.15}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.25}) end}
+    -- Shader đẹp bổ sung thêm:
+    {"Giấc Mơ Anime (Soft)", function() lockTime(15.5) Lighting.Brightness = 2.7 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 225, 225), Saturation = 0.25}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.45, Size = 16}) end},
+    {"Nắng Mùa Hè Cực Hạn", function() lockTime(12.5) Lighting.Brightness = 3.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.2, Contrast = 0.12}) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.45}) end},
+    {"Đồ Họa HDR Siêu Thực", function() lockTime(14) Lighting.Brightness = 3.0 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Contrast = 0.3, Saturation = 0.15}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10}) end},
+    {"Sương Mù Huyền Ảo", function() lockTime(5.8) Lighting.Brightness = 1.4 create("Atmosphere", Lighting, {Name = "VanutAtmosphere", Density = 0.7, Color = Color3.fromRGB(190, 200, 210)}) end},
+    {"Tone Lạnh Bắc Cực", function() lockTime(10) Lighting.Brightness = 2.3 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(205, 235, 255), Saturation = -0.15}) end},
+    {"U Ám Kinh Dị (Horror)", function() lockTime(19.5) Lighting.Brightness = 0.4 Lighting.Ambient = Color3.fromRGB(15,15,15) create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.5, Contrast = 0.3}) end},
+    {"Màu Film Hoài Cổ (Vibe)", function() lockTime(17) Lighting.Brightness = 2.4 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", TintColor = Color3.fromRGB(255, 240, 200), Saturation = -0.05, Contrast = 0.08}) end}
 }
 
--- Tính năng Boost FPS
+-- Tính năng Tối ưu FPS
 local function boostFPS()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
     sethiddenproperty(Workspace.Terrain, "Decoration", false)
@@ -175,8 +208,6 @@ local function boostFPS()
             v.Reflectance = 0
         elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Sparkles") then
             v.Enabled = false
-        elseif v:IsA("Explosion") then
-            v.Visible = false
         end
     end
 end
@@ -184,52 +215,42 @@ end
 local function ultraBoostFPS()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
     Lighting.GlobalShadows = false
-    Lighting.ShadowSoftness = 0
     if Workspace:FindFirstChildOfClass("Terrain") then
         local terrain = Workspace:FindFirstChildOfClass("Terrain")
         sethiddenproperty(terrain, "Decoration", false)
         terrain.WaterWaveSize = 0
-        terrain.WaterWaveSpeed = 0
         terrain.WaterReflectance = 0
     end
     for _, obj in pairs(game:GetDescendants()) do
         if obj:IsA("MeshPart") then
             obj.RenderFidelity = Enum.RenderFidelity.Performance
-            obj.CollisionFidelity = Enum.CollisionFidelity.Box
         elseif obj:IsA("BasePart") then
             obj.CastShadow = false
-            obj.Reflectance = 0
-        elseif obj:IsA("SurfaceAppearance") or obj:IsA("MaterialVariant") then
-            obj.Enabled = false
         end
     end
     sethiddenproperty(Lighting, "Technology", Enum.LightingTechnology.Compatibility)
 end
 
--- Hàm tạo Animation Click mượt mà cho các nút
+-- Hàm tạo Animation Click co giãn mượt mà khi chọn nút
 local function playClickAnimation(button)
     local originalSize = button.Size
     local originalColor = button.BackgroundColor3
     
-    -- Thu nhỏ và đổi màu sáng lên khi nhấn vào
-    local shrinkTween = TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.QuadOut), {
-        Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset - 10, originalSize.Y.Scale, originalSize.Y.Offset - 4),
-        BackgroundColor3 = Color3.fromRGB(38, 67, 114)
+    local shrinkTween = TweenService:Create(button, TweenInfo.new(0.08, Enum.EasingStyle.QuadOut), {
+        Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset - 8, originalSize.Y.Scale, originalSize.Y.Offset - 3),
+        BackgroundColor3 = Color3.fromRGB(35, 70, 120)
     })
     
-    -- Trở lại trạng thái cũ
-    local returnTween = TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.QuadIn), {
+    local returnTween = TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.QuadIn), {
         Size = originalSize,
         BackgroundColor3 = originalColor
     })
     
     shrinkTween:Play()
-    shrinkTween.Completed:Connect(function()
-        returnTween:Play()
-    end)
+    shrinkTween.Completed:Connect(function() returnTween:Play() end)
 end
 
--- Tạo danh sách các nút Shader vào ScrollingFrame
+-- Tạo danh sách Shader vào vùng cuộn
 for i, data in ipairs(shaderFuncs) do
     local btn = create("TextButton", ScrollFrame, {
         Size = UDim2.new(0.95, 0, 0, 35), 
@@ -249,24 +270,32 @@ for i, data in ipairs(shaderFuncs) do
     end)
 end
 
--- Nút SIÊU BOOST FPS TOÁN DIỆN (Nằm dưới vùng cuộn)
-local BoostBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 32), Position = UDim2.new(0.05, 0, 0, 275), BackgroundColor3 = Color3.fromRGB(30, 110, 40), Text = "SIÊU BOOST FPS", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
+-- NÚT LÀM BÓNG & HIỆU ỨNG SIÊU ĐẸP (FUTURE)
+local UltraGraphicsBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 30), Position = UDim2.new(0.05, 0, 0, 305), BackgroundColor3 = Color3.fromRGB(150, 80, 20), Text = "✨ BẬT BÓNG & ĐỒ HỌA ĐẸP lên", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
+create("UICorner", UltraGraphicsBtn, {CornerRadius = UDim.new(0, 6)})
+UltraGraphicsBtn.MouseButton1Click:Connect(function()
+    playClickAnimation(UltraGraphicsBtn)
+    maxGraphicsUltra()
+end)
+
+-- Nút BOOST FPS TOÁN DIỆN
+local BoostBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.43, 0, 0, 30), Position = UDim2.new(0.05, 0, 0, 340), BackgroundColor3 = Color3.fromRGB(30, 110, 40), Text = "SIÊU BOOST FPS", TextColor3 = Color3.new(1,1,1), TextSize = 12, Font = Enum.Font.SourceSansBold})
 create("UICorner", BoostBtn, {CornerRadius = UDim.new(0, 6)})
 BoostBtn.MouseButton1Click:Connect(function()
     playClickAnimation(BoostBtn)
     boostFPS()
 end)
 
--- Nút BOOST 100 - 200 FPS (Siêu Mượt)
-local UltraBoostBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 32), Position = UDim2.new(0.05, 0, 0, 310), BackgroundColor3 = Color3.fromRGB(24, 84, 137), Text = "BOOST 100 -> 200 FPS", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
+-- Nút BOOST 100 - 200 FPS
+local UltraBoostBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.43, 0, 0, 30), Position = UDim2.new(0.52, 0, 0, 340), BackgroundColor3 = Color3.fromRGB(24, 84, 137), Text = "BOOST 100-200 FPS", TextColor3 = Color3.new(1,1,1), TextSize = 12, Font = Enum.Font.SourceSansBold})
 create("UICorner", UltraBoostBtn, {CornerRadius = UDim.new(0, 6)})
 UltraBoostBtn.MouseButton1Click:Connect(function()
     playClickAnimation(UltraBoostBtn)
     ultraBoostFPS()
 end)
 
--- Nút XÓA SHADER
-local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 32), Position = UDim2.new(0.05, 0, 0, 345), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "XÓA SHADER", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
+-- Nút XÓA SHADER / RESET LIGHTING
+local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 32), Position = UDim2.new(0.05, 0, 0, 375), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "❌ XÓA SHADER / RESET ĐỒ HỌA", TextColor3 = Color3.new(1,1,1), TextSize = 13, Font = Enum.Font.SourceSansBold})
 create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
 ResetBtn.MouseButton1Click:Connect(function()
     playClickAnimation(ResetBtn)
