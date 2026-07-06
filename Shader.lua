@@ -137,7 +137,6 @@ end
 
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
-    -- Giữ nguyên ID Skybox cũ ban đầu theo yêu cầu
     create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
     starConn = RunService.Heartbeat:Connect(function()
         if math.random(1, 120) == 1 then
