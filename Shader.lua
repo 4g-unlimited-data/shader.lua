@@ -117,14 +117,24 @@ end)
 
 -- 4. LOGIC XỬ LÝ SHADER & LIGHTING
 local timeLockConn, starConn
+local backupAtmosphere = nil
 
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     if starConn then starConn:Disconnect() starConn = nil end
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
-    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do 
+    
+    -- Xóa các hiệu ứng shader cũ tạo ra
+    for _, n in pairs({"VanutBloom", "VanutCC", "VanutSunRays", "VanutSky"}) do 
         local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
     end
+    
+    -- Khôi phục lại Atmosphere gốc của game nếu có
+    if backupAtmosphere then
+        backupAtmosphere.Parent = Lighting
+        backupAtmosphere = nil
+    end
+    
     Lighting.ClockTime = 14
     Lighting.Brightness = 2
     Lighting.Ambient = Color3.fromRGB(128, 128, 128)
@@ -137,7 +147,20 @@ end
 
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
+    
+    -- Dọn dẹp Sky cũ trước khi tạo cái mới
+    local oldSky = Lighting:FindFirstChild("VanutSky") or Lighting:FindFirstChildOfClass("Sky")
+    if oldSky and oldSky.Name ~= "VanutSky" then oldSky:Destroy() end
+    
+    -- Tạm thời ẩn Atmosphere của game đi để Skybox hiện lên rõ nét
+    local currentAtmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+    if currentAtmosphere then
+        backupAtmosphere = currentAtmosphere
+        currentAtmosphere.Parent = nil
+    end
+
     create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
+    
     starConn = RunService.Heartbeat:Connect(function()
         if math.random(1, 120) == 1 then
             local startPos = Vector3.new(math.random(-200, 200), math.random(120, 180), math.random(-200, 200))
