@@ -60,237 +60,74 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    MainMenu.Visible = not MainMenu.Visible
-end)
+ToggleBtn.MouseButton1Click:Connect(function() MainMenu.Visible = not MainMenu.Visible end)
 
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
     guiObject.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = guiObject.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+            dragging = true; dragStart = input.Position; startPos = guiObject.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-    guiObject.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
+    guiObject.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+    UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then local delta = input.Position - dragStart guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 makeDraggable(MainMenu)
 
-local FpsFrame = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 120, 0, 40),
-    Position = UDim2.new(0.85, 0, 0.05, 0),
-    BackgroundTransparency = 1,
-    Active = true
-})
-local FpsLabel = create("TextLabel", FpsFrame, {
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Text = "FPS: ...",
-    TextSize = 18,
-    Font = Enum.Font.GothamBold,
-    TextXAlignment = Enum.TextXAlignment.Center,
-    TextYAlignment = Enum.TextYAlignment.Center
-})
+local FpsFrame = create("Frame", ScreenGui, {Size = UDim2.new(0, 120, 0, 40), Position = UDim2.new(0.85, 0, 0.05, 0), BackgroundTransparency = 1, Active = true})
+local FpsLabel = create("TextLabel", FpsFrame, {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "FPS: ...", TextSize = 18, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center})
 makeDraggable(FpsFrame)
 
-local frameCount = 0
-local lastUpdate = os.clock()
-local hue = 0
+local frameCount, lastUpdate, hue = 0, os.clock(), 0
 RunService.RenderStepped:Connect(function(dt)
     frameCount = frameCount + 1
     local now = os.clock()
-    if now - lastUpdate >= 0.5 then
-        local fps = math.floor(frameCount / (now - lastUpdate))
-        FpsLabel.Text = "FPS: " .. fps
-        frameCount = 0
-        lastUpdate = now
-    end
-    hue = (hue + dt * 0.1) % 1
-    FpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    if now - lastUpdate >= 0.5 then FpsLabel.Text = "FPS: " .. math.floor(frameCount / (now - lastUpdate)) frameCount = 0 lastUpdate = now end
+    hue = (hue + dt * 0.1) % 1 FpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
 end)
 
-local SliderFrame = create("Frame", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -255),
-    BackgroundColor3 = Color3.fromRGB(30, 41, 59)
-})
-create("UICorner", SliderFrame, {CornerRadius = UDim.new(0, 6)})
-local SliderLabel = create("TextLabel", SliderFrame, {
-    Size = UDim2.new(1, 0, 0, 20),
-    BackgroundTransparency = 1,
-    Text = "Kích thước FPS UI",
-    TextColor3 = Color3.fromRGB(148, 163, 184),
-    TextSize = 11,
-    Font = Enum.Font.GothamSemibold
-})
-local SliderBar = create("Frame", SliderFrame, {
-    Size = UDim2.new(0.8, 0, 0, 6),
-    Position = UDim2.new(0.1, 0, 0.65, 0),
-    BackgroundColor3 = Color3.fromRGB(51, 65, 85)
-})
-create("UICorner", SliderBar, {CornerRadius = UDim.new(0, 3)})
-local SliderBtn = create("TextButton", SliderBar, {
-    Size = UDim2.new(0, 14, 0, 14),
-    Position = UDim2.new(0.4, -7, 0.5, -7),
-    BackgroundColor3 = Color3.fromRGB(56, 189, 248),
-    Text = ""
-})
-create("UICorner", SliderBtn, {CornerRadius = UDim.new(0, 7)})
-
-local SliderActive = false
-SliderBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then SliderActive = true end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then SliderActive = false end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if SliderActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position.X
-        local barLeft = SliderBar.AbsolutePosition.X
-        local barWidth = SliderBar.AbsoluteSize.X
-        local percentage = math.clamp((mousePos - barLeft) / barWidth, 0, 1)
-        SliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7)
-        local targetSize = 12 + (percentage * 20)
-        FpsLabel.TextSize = targetSize
-        FpsFrame.Size = UDim2.new(0, targetSize * 6, 0, targetSize * 2)
-    end
-end)
-
-local ReflectSliderFrame = create("Frame", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 45),
-    Position = UDim2.new(0.05, 0, 1, -200),
-    BackgroundColor3 = Color3.fromRGB(30, 41, 59)
-})
+local ReflectSliderFrame = create("Frame", MainMenu, {Size = UDim2.new(0.9, 0, 0, 45), Position = UDim2.new(0.05, 0, 1, -200), BackgroundColor3 = Color3.fromRGB(30, 41, 59)})
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
-local ReflectSliderLabel = create("TextLabel", ReflectSliderFrame, {
-    Size = UDim2.new(1, 0, 0, 20),
-    BackgroundTransparency = 1,
-    Text = "Độ Bóng Đồ Họa Cao: 0%",
-    TextColor3 = Color3.fromRGB(148, 163, 184),
-    TextSize = 11,
-    Font = Enum.Font.GothamSemibold
-})
-local ReflectSliderBar = create("Frame", ReflectSliderFrame, {
-    Size = UDim2.new(0.8, 0, 0, 6),
-    Position = UDim2.new(0.1, 0, 0.65, 0),
-    BackgroundColor3 = Color3.fromRGB(51, 65, 85)
-})
+local ReflectSliderLabel = create("TextLabel", ReflectSliderFrame, {Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Text = "Độ Bóng Đồ Họa Cao: 0%", TextColor3 = Color3.fromRGB(148, 163, 184), TextSize = 11, Font = Enum.Font.GothamSemibold})
+local ReflectSliderBar = create("Frame", ReflectSliderFrame, {Size = UDim2.new(0.8, 0, 0, 6), Position = UDim2.new(0.1, 0, 0.65, 0), BackgroundColor3 = Color3.fromRGB(51, 65, 85)})
 create("UICorner", ReflectSliderBar, {CornerRadius = UDim.new(0, 3)})
-local ReflectSliderBtn = create("TextButton", ReflectSliderBar, {
-    Size = UDim2.new(0, 14, 0, 14),
-    Position = UDim2.new(0, -7, 0.5, -7),
-    BackgroundColor3 = Color3.fromRGB(56, 189, 248),
-    Text = ""
-})
+local ReflectSliderBtn = create("TextButton", ReflectSliderBar, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(0, -7, 0.5, -7), BackgroundColor3 = Color3.fromRGB(56, 189, 248), Text = ""})
 create("UICorner", ReflectSliderBtn, {CornerRadius = UDim.new(0, 7)})
 
-local ReflectActive = false
-local currentGlossValue = 0
-
+local ReflectActive, currentGlossValue = false, 0
 local function updateWorldReflection(glossPercentage)
-    local visualValue = math.floor(glossPercentage * 100)
-    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: " .. visualValue .. "%"
-    local parts = Workspace:GetDescendants()
-    for i = 1, #parts do
-        local object = parts[i]
-        if object:IsA("BasePart") then
-            if object.Size.X > 1.5 or object.Size.Z > 1.5 then
-                if glossPercentage > 0 then
-                    object.Material = Enum.Material.SmoothPlastic
-                    object.Reflectance = glossPercentage * 0.65 
-                else
-                    object.Material = Enum.Material.SmoothPlastic
-                    object.Reflectance = 0
-                end
-            end
+    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: " .. math.floor(glossPercentage * 100) .. "%"
+    for _, object in pairs(Workspace:GetDescendants()) do
+        if object:IsA("BasePart") and (object.Size.X > 1.5 or object.Size.Z > 1.5) then
+            object.Material = Enum.Material.SmoothPlastic object.Reflectance = glossPercentage * 0.65
         end
-        if i % 250 == 0 then task.wait() end 
     end
 end
-
-ReflectSliderBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = true end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = false end
-end)
+ReflectSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = true end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = false end end)
 UserInputService.InputChanged:Connect(function(input)
     if ReflectActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position.X
-        local barLeft = ReflectSliderBar.AbsolutePosition.X
-        local barWidth = ReflectSliderBar.AbsoluteSize.X
-        local percentage = math.clamp((mousePos - barLeft) / barWidth, 0, 1)
-        ReflectSliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7)
-        currentGlossValue = percentage
-        updateWorldReflection(percentage)
+        local percentage = math.clamp((input.Position.X - ReflectSliderBar.AbsolutePosition.X) / ReflectSliderBar.AbsoluteSize.X, 0, 1)
+        ReflectSliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7) currentGlossValue = percentage updateWorldReflection(percentage)
     end
 end)
 
-local timeLockConn, starConn, brightConn
-local originalMaterials = {}
-
-local function resetReflectionOnly()
-    ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
-    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
-    currentGlossValue = 0
-    local parts = Workspace:GetDescendants()
-    for i = 1, #parts do
-        local object = parts[i]
-        if object:IsA("BasePart") then
-            if originalMaterials[object] then object.Material = originalMaterials[object] else object.Material = Enum.Material.SmoothPlastic end
-            object.Reflectance = 0
-        end
-        if i % 200 == 0 then task.wait() end
-    end
-end
-
-local function disableMotionBlurOnly()
-    RunService:UnbindFromRenderStep("VanutMotionBlurUpdate")
-    local blur = Lighting:FindFirstChild("VanutMotionBlur")
-    if blur then blur:Destroy() end
-end
-
+local timeLockConn, starConn, brightConn, originalMaterials = nil, nil, nil, {}
+local function disableMotionBlurOnly() RunService:UnbindFromRenderStep("VanutMotionBlurUpdate") local blur = Lighting:FindFirstChild("VanutMotionBlur") if blur then blur:Destroy() end end
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     if starConn then starConn:Disconnect() starConn = nil end
     if brightConn then brightConn:Disconnect() brightConn = nil end
     disableMotionBlurOnly()
-    for part, mat in pairs(originalMaterials) do
-        if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end
-    end
+    for part, mat in pairs(originalMaterials) do if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end end
     table.clear(originalMaterials)
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
-    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do 
-        local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
-    end
-    Lighting.ClockTime = 14
-    Lighting.Brightness = 2
-    Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    ReflectSliderBtn.Position = UDim2.new(0, -7, 0.5, -7)
-    ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: 0%"
+    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do local found = Lighting:FindFirstChild(n) if found then found:Destroy() end end
+    Lighting.ClockTime = 14 Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(128, 128, 128) Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
 end
 
-local function lockTime(targetTime)
-    if timeLockConn then timeLockConn:Disconnect() end
-    timeLockConn = RunService.Heartbeat:Connect(function() Lighting.ClockTime = targetTime end)
-end
-
+local function lockTime(targetTime) if timeLockConn then timeLockConn:Disconnect() end timeLockConn = RunService.Heartbeat:Connect(function() Lighting.ClockTime = targetTime end) end
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
     create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
@@ -299,8 +136,7 @@ local function spawnAdvancedNight()
             local startPos = Vector3.new(math.random(-200, 200), math.random(120, 180), math.random(-200, 200))
             local meteor = create("Part", Workspace, {Name = "VanutMeteor", Size = Vector3.new(1, 1, 5), Material = Enum.Material.Neon, Color = Color3.fromRGB(200, 240, 255), Anchored = true, CanCollide = false, Position = startPos})
             local tween = TweenService:Create(meteor, TweenInfo.new(0.8, Enum.EasingStyle.QuadIn), {Position = startPos + Vector3.new(0, -100, 0), Transparency = 1})
-            local conn; conn = tween.Completed:Connect(function() meteor:Destroy() conn:Disconnect() end)
-            tween:Play()
+            tween.Completed:Connect(function() meteor:Destroy() end) tween:Play()
         end
     end)
 end
@@ -312,71 +148,21 @@ local shaderFuncs = {
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 spawnAdvancedNight() end},
     {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15}) end},
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end},
-    {"Sáng đêm (Dễ đi đường)", function() lockTime(0) brightConn = RunService.Heartbeat:Connect(function() Lighting.Ambient = Color3.fromRGB(200, 200, 200) Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200) Lighting.Brightness = 3 end) end},
-    {"Làm nét Texture + Tối ưu PC", function() local objects = Workspace:GetDescendants() for i = 1, #objects do local object = objects[i] if object:IsA("BasePart") then if not originalMaterials[object] then originalMaterials[object] = object.Material end if object.Material == Enum.Material.Plastic or object.Material == Enum.Material.SmoothPlastic then object.Material = Enum.Material.Concrete end elseif object:IsA("Decal") or object:IsA("Texture") then object.LocalTransparencyModifier = object.LocalTransparencyModifier end if i % 200 == 0 then task.wait() end end end},
-    {"Chế độ Nét Tối Đa", function() 
-        Lighting.GlobalShadows = true
-        Lighting.ShadowSoftness = 0 
-        for _, obj in pairs(Workspace:GetDescendants()) do 
-            if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then 
-                obj.LocalTransparencyModifier = 0 
-            elseif obj:IsA("BasePart") then
-                obj.CastShadow = true
-                if obj.Material == Enum.Material.Plastic then obj.Material = Enum.Material.SmoothPlastic end
-            end
-        end 
+    {"Tăng Độ Nét 4K (Ultra)", function()
+        Lighting.GlobalShadows = true Lighting.ShadowSoftness = 0
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then obj.CastShadow = true obj.Material = Enum.Material.SmoothPlastic
+            elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then obj.LocalTransparencyModifier = 0 end
+        end
     end}
 }
 
 for i, data in ipairs(shaderFuncs) do
-    local btn = create("TextButton", ScrollFrame, {
-        Size = UDim2.new(0.96, 0, 0, 38), 
-        Position = UDim2.new(0.02, 0, 0, 5 + (i-1)*44), 
-        BackgroundColor3 = Color3.fromRGB(30, 41, 59), 
-        Text = data[1], 
-        TextColor3 = Color3.fromRGB(241, 245, 249), 
-        TextSize = 13,
-        Font = Enum.Font.GothamSemibold
-    })
-    create("UICorner", btn, {CornerRadius = UDim.new(0, 6)})
-    create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
-    btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(56, 189, 248), TextColor3 = Color3.fromRGB(15, 23, 42)}):Play() end)
-    btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 41, 59), TextColor3 = Color3.fromRGB(241, 245, 249)}):Play() end)
+    local btn = create("TextButton", ScrollFrame, {Size = UDim2.new(0.96, 0, 0, 38), Position = UDim2.new(0.02, 0, 0, 5 + (i-1)*44), BackgroundColor3 = Color3.fromRGB(30, 41, 59), Text = data[1], TextColor3 = Color3.fromRGB(241, 245, 249), TextSize = 13, Font = Enum.Font.GothamSemibold})
+    create("UICorner", btn, {CornerRadius = UDim.new(0, 6)}) create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
-local ResetBlurBtn = create("TextButton", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 38), 
-    Position = UDim2.new(0.05, 0, 1, -142), 
-    BackgroundColor3 = Color3.fromRGB(13, 148, 136), 
-    Text = "TẮT MOTION BLUR", 
-    TextColor3 = Color3.fromRGB(255, 255, 255), 
-    TextSize = 13,
-    Font = Enum.Font.GothamBold
-})
-create("UICorner", ResetBlurBtn, {CornerRadius = UDim.new(0, 6)})
-ResetBlurBtn.MouseButton1Click:Connect(disableMotionBlurOnly)
-
-local ResetReflectBtn = create("TextButton", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 38), 
-    Position = UDim2.new(0.05, 0, 1, -95), 
-    BackgroundColor3 = Color3.fromRGB(217, 119, 6), 
-    Text = "XÓA BÓNG LOÁNG", 
-    TextColor3 = Color3.fromRGB(255, 255, 255), 
-    TextSize = 13,
-    Font = Enum.Font.GothamBold
-})
-create("UICorner", ResetReflectBtn, {CornerRadius = UDim.new(0, 6)})
-ResetReflectBtn.MouseButton1Click:Connect(resetReflectionOnly)
-
-local ResetBtn = create("TextButton", MainMenu, {
-    Size = UDim2.new(0.9, 0, 0, 38), 
-    Position = UDim2.new(0.05, 0, 1, -48), 
-    BackgroundColor3 = Color3.fromRGB(239, 68, 68), 
-    Text = "XÓA SHADER ALL", 
-    TextColor3 = Color3.fromRGB(255, 255, 255), 
-    TextSize = 13,
-    Font = Enum.Font.GothamBold
-})
+local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 38), Position = UDim2.new(0.05, 0, 1, -48), BackgroundColor3 = Color3.fromRGB(239, 68, 68), Text = "XÓA SHADER ALL", TextColor3 = Color3.fromRGB(255, 255, 255), TextSize = 13, Font = Enum.Font.GothamBold})
 create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
 ResetBtn.MouseButton1Click:Connect(resetLightingComplete)
