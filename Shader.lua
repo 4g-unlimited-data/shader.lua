@@ -137,6 +137,7 @@ end
 
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
+    -- Giữ nguyên ID Skybox cũ ban đầu theo yêu cầu
     create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
     starConn = RunService.Heartbeat:Connect(function()
         if math.random(1, 120) == 1 then
@@ -172,7 +173,6 @@ for i, data in ipairs(shaderFuncs) do
     create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
     
     btn.MouseButton1Click:Connect(function()
-        -- Click Animation (Ripple Effect thu nhỏ rồi giãn ra nhanh)
         local origSize = UDim2.new(0.9, 0, 0, 38)
         local origPos = UDim2.new(0.05, 0, 0, 45 + (i-1)*44)
         
