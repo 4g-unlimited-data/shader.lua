@@ -17,65 +17,105 @@ local function create(cls, parent, props)
     return inst
 end
 
--- ScreenGui chính
 local ScreenGui = create("ScreenGui", targetGui, {Name = "Vanut_Shader_Only", ResetOnSpawn = false})
 
--- 1. Nút Bật/Tắt Menu (Toggle Button) phù hợp cho điện thoại
+-- 1. NÚT BẬT/TẮT MENU (MODERN CHROME)
 local ToggleBtn = create("TextButton", ScreenGui, {
-    Size = UDim2.new(0, 50, 0, 50),
+    Size = UDim2.new(0, 55, 0, 55),
     Position = UDim2.new(0.05, 0, 0.1, 0),
-    BackgroundColor3 = Color3.fromRGB(22, 38, 64),
+    BackgroundColor3 = Color3.fromRGB(15, 23, 42),
     Text = "Vanut",
-    TextColor3 = Color3.new(1, 1, 1),
-    TextSize = 14,
-    Font = Enum.Font.SourceSansBold,
+    TextColor3 = Color3.fromRGB(56, 189, 248),
+    TextSize = 15,
+    Font = Enum.Font.GothamBold,
     Active = true,
-    Draggable = true -- Tự động cho phép di chuyển nút bật/tắt
+    Draggable = true
 })
-create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 25)})
+create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 16)})
+create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
 
--- 2. Tùy chỉnh Menu (Không quá màn hình, không lớn quá nửa màn hình điện thoại)
+-- 2. GIAO DIỆN CHÍNH (NEUMORPHISM DARK)
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 240, 0, 320), 
-    Position = UDim2.new(0.5, -120, 0.5, -160), 
-    BackgroundColor3 = Color3.fromRGB(10, 16, 28), 
-    Visible = false -- Mặc định ẩn, bấm nút để bật
+    Size = UDim2.new(0, 260, 0, 370), 
+    Position = UDim2.new(0.5, -130, 0.5, -185), 
+    BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
+    Visible = false,
+    ClipsDescendants = true
 })
-create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 8)})
+create("UICorner", MainMenu, {CornerRadius = UDim.new(0, 16)})
+create("UIStroke", MainMenu, {Color = Color3.fromRGB(30, 41, 59), Thickness = 1.5})
 
--- Tính năng Bật/Tắt khi nhấn nút
+local Title = create("TextLabel", MainMenu, {
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundTransparency = 1,
+    Text = "VANUT SHADER",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextSize = 14,
+    Font = Enum.Font.GothamBold
+})
+
+-- TÍNH NĂNG KÉO THẢ (DRAG)
+local function makeDraggable(gui)
+    local dragging, dragInput, dragStart, startPos
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = gui.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+makeDraggable(MainMenu)
+
+-- TẬP HỢP HIỆU ỨNG LÀM MỚI UI KHI NHẤN NÚT MENU
 ToggleBtn.MouseButton1Click:Connect(function()
     MainMenu.Visible = not MainMenu.Visible
-end)
-
--- Tính năng Di chuyển (Drag) cho MainMenu trên Điện thoại và Máy tính
-local dragging, dragInput, dragStart, startPos
-local function update(input)
-    local delta = input.Position - dragStart
-    MainMenu.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-MainMenu.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainMenu.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+    if MainMenu.Visible then
+        MainMenu.Size = UDim2.new(0, 260, 0, 0)
+        TweenService:Create(MainMenu, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 260, 0, 370)}):Play()
     end
 end)
 
-MainMenu.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+-- 3. UI FPS TRONG SUỐT 7 SẮC CẦU VỒNG (CÓ THỂ DI CHUYỂN)
+local FpsGui = create("Frame", ScreenGui, {
+    Size = UDim2.new(0, 90, 0, 35),
+    Position = UDim2.new(0.85, 0, 0.02, 0),
+    BackgroundTransparency = 1,
+    Active = true
+})
+local FpsText = create("TextLabel", FpsGui, {
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "FPS: --",
+    TextSize = 16,
+    Font = Enum.Font.GothamBold
+})
+create("UIStroke", FpsText, {Color = Color3.fromRGB(0,0,0), Thickness = 1.5})
+makeDraggable(FpsGui)
+
+-- Xử lý FPS và màu 7 sắc cầu vồng
+local fpsCount = 0
+local lastUpdate = os.clock()
+RunService.RenderStepped:Connect(function()
+    fpsCount = fpsCount + 1
+    local now = os.clock()
+    if now - lastUpdate >= 0.5 then
+        FpsText.Text = string.format("FPS: %d", math.floor(fpsCount / (now - lastUpdate)))
+        fpsCount = 0
+        lastUpdate = now
     end
+    FpsText.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
-end)
-
+-- 4. LOGIC XỬ LÝ SHADER & LIGHTING
 local timeLockConn, starConn
 
 local function resetLightingComplete()
@@ -117,13 +157,49 @@ local shaderFuncs = {
     {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24}) end}
 }
 
--- Điều chỉnh kích thước nút bên trong Menu cho vừa vặn size mới
+-- KHỞI TẠO NÚT SHADER VỚI ANIMATION CLICK MỚI
 for i, data in ipairs(shaderFuncs) do
-    local btn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 10 + (i-1)*40), BackgroundColor3 = Color3.fromRGB(22, 38, 64), Text = data[1], TextColor3 = Color3.new(1,1,1), TextSize = 14})
-    create("UICorner", btn, {CornerRadius = UDim.new(0, 6)})
-    btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
+    local btn = create("TextButton", MainMenu, {
+        Size = UDim2.new(0.9, 0, 0, 38), 
+        Position = UDim2.new(0.05, 0, 0, 45 + (i-1)*44), 
+        BackgroundColor3 = Color3.fromRGB(30, 41, 59), 
+        Text = data[1], 
+        TextColor3 = Color3.fromRGB(226, 232, 240), 
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    })
+    create("UICorner", btn, {CornerRadius = UDim.new(0, 8)})
+    create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
+    
+    btn.MouseButton1Click:Connect(function()
+        -- Click Animation (Ripple Effect thu nhỏ rồi giãn ra nhanh)
+        local origSize = UDim2.new(0.9, 0, 0, 38)
+        local origPos = UDim2.new(0.05, 0, 0, 45 + (i-1)*44)
+        
+        TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.QuadOut), {Size = UDim2.new(0.85, 0, 0, 34), Position = origPos + UDim2.new(0.025, 0, 0, 2)}):Play()
+        task.wait(0.1)
+        TweenService:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = origSize, Position = origPos}):Play()
+        
+        resetLightingComplete() 
+        data[2]() 
+    end)
 end
 
-local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 35), Position = UDim2.new(0.05, 0, 0, 270), BackgroundColor3 = Color3.fromRGB(110, 35, 40), Text = "XÓA SHADER", TextColor3 = Color3.new(1,1,1), TextSize = 14})
-create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
-ResetBtn.MouseButton1Click:Connect(resetLightingComplete)
+-- 5. NÚT XÓA SHADER
+local ResetBtn = create("TextButton", MainMenu, {
+    Size = UDim2.new(0.9, 0, 0, 40), 
+    Position = UDim2.new(0.05, 0, 0, 315), 
+    BackgroundColor3 = Color3.fromRGB(239, 68, 68), 
+    Text = "XÓA SHADER", 
+    TextColor3 = Color3.new(1,1,1), 
+    TextSize = 13,
+    Font = Enum.Font.GothamBold
+})
+create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 8)})
+
+ResetBtn.MouseButton1Click:Connect(function()
+    TweenService:Create(ResetBtn, TweenInfo.new(0.1, Enum.EasingStyle.QuadOut), {Size = UDim2.new(0.85, 0, 0, 36), Position = UDim2.new(0.075, 0, 0, 317)}):Play()
+    task.wait(0.1)
+    TweenService:Create(ResetBtn, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0.9, 0, 0, 40), Position = UDim2.new(0.05, 0, 0, 315)}):Play()
+    resetLightingComplete()
+end)
