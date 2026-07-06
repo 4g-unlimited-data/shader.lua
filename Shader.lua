@@ -27,9 +27,11 @@ local defaults = {
     ColorShift_Bottom = Lighting.ColorShift_Bottom,
 }
 
-local currentGloss = 20
+-- Fix 1: Thay thế WaitForChild vô tận bằng timeout 10s + Fallback CoreGui chuẩn xác
 local targetGui = player:WaitForChild("PlayerGui", 10)
-if not targetGui then return end
+if not targetGui then 
+    targetGui = game:GetService("CoreGui") 
+end
 
 -- Remove any old instances to avoid duplicates
 if targetGui:FindFirstChild("Vanut_Rimuru_v64") then 
@@ -62,11 +64,12 @@ local function clearCustomEffects()
     end
 end
 
+-- Fix 5: Ép cấu hình ScreenGui với DisplayOrder cao nhất để tránh bị đè/ignore
 local ScreenGui = create("ScreenGui", targetGui, {
     Name = "Vanut_Rimuru_v64", 
     ResetOnSpawn = false, 
     ZIndexBehavior = Enum.ZIndexBehavior.Global,
-    DisplayOrder = -1,
+    DisplayOrder = 999, 
     IgnoreGuiInset = true,
     Enabled = true
 })
@@ -91,7 +94,6 @@ local function destroyGuiAndDisconnect()
     end
 end
 
--- Bug 3 Fix: Safely bind the cleanup code to the execution cycle close context
 pcall(function()
     game:BindToClose(destroyGuiAndDisconnect)
 end)
@@ -115,7 +117,6 @@ local function resetLightingComplete()
     safeSet("ExposureCompensation", defaults.ExposureCompensation)
     safeSet("EnvironmentSpecularScale", defaults.EnvironmentSpecularScale)
     safeSet("EnvironmentDiffuseScale", defaults.EnvironmentDiffuseScale)
-    -- Bug 1 Fix: Correctly reverting back using explicitly captured stored global references
     safeSet("ClockTime", defaults.ClockTime)
     safeSet("FogStart", defaults.FogStart)
     safeSet("FogEnd", defaults.FogEnd)
@@ -124,20 +125,21 @@ local function resetLightingComplete()
 end
 
 -- UI Toggle Configuration Base Setup
+-- Fix 2 & 4: Bật Visible = true ngay lập tức, sửa lại tọa độ chống lệch màn hình mobile
 local ToggleMenuBtn = create("TextButton", ScreenGui, {
     Size = UDim2.new(0, 36, 0, 36),
-    Position = UDim2.new(0, 15, 0, 15),
+    Position = UDim2.new(0, 10, 0, 10),
+    AnchorPoint = Vector2.new(0, 0),
     BackgroundColor3 = Color3.fromRGB(12, 22, 40),
     Text = "⚙️",
     TextColor3 = Color3.fromRGB(0, 215, 255),
     Font = Enum.Font.GothamBold,
     TextSize = 16,
-    Visible = false,
+    Visible = true, 
     Active = false,
     ZIndex = 5
 }) addCorner(ToggleMenuBtn, 18) addStroke(ToggleMenuBtn)
 
--- Bug 5 Fix: Optimized scale coordinates layout container box parameters sizing down for smaller devices
 local MainMenu = create("Frame", ScreenGui, {
     Size = UDim2.new(0, 340, 0, 260),
     Position = UDim2.new(0.5, -170, 0.35, -130),
@@ -206,7 +208,6 @@ local function makeDraggable(f, h)
                     if changeCon then changeCon:Disconnect() end
                 end
             end)
-            -- Bug 3 Fix: Safeguard tracking memory leak links across runtime frames
             table.insert(connections, changeCon)
         end
     end))
@@ -225,7 +226,7 @@ makeDraggable(ToggleMenuBtn, ToggleMenuBtn)
 makeDraggable(MainMenu, MainMenu:FindFirstChildOfClass("TextLabel"))
 
 -- =======================================================================
--- TAB 1: SHADER ENGINE (OPTIMIZED FOR LOW-RAM DEBOUNCING)
+-- TAB 1: SHADER ENGINE
 -- =======================================================================
 local PageShader = create("ScrollingFrame", nil, {CanvasSize = UDim2.new(0, 0, 0, 310), ScrollBarThickness = 2, BackgroundTransparency = 1, BorderSizePixel = 0, Active = false, ScrollingEnabled = true, ZIndex = 12}) create("UIListLayout", PageShader, {Padding = UDim.new(0, 4)})
 
@@ -234,8 +235,6 @@ local function buildProtectedCallback(applyFunc)
         if isApplying or isGuiDestroyed then return end
         isApplying = true
         resetLightingComplete()
-        
-        -- Bug 4 Fix: Secure flow execution ensuring flag clear operations always run unconditionally
         pcall(applyFunc)
         updateGlossiness()
         isApplying = false
@@ -300,7 +299,7 @@ table.insert(connections, ClearShaderBtn.Activated:Connect(buildProtectedCallbac
 createTab("Shader", 1, PageShader)
 
 -- =======================================================================
--- TAB 2: ĐỘ BÓNG NÂNG CAO (GLOSS SPECULAR MANAGEMENT)
+-- TAB 2: ĐỘ BÓNG NÂNG CAO
 -- =======================================================================
 local PageGloss = create("Frame", nil, {ZIndex = 12})
 local SliderTitle = create("TextLabel", PageGloss, {Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 15), BackgroundTransparency = 1, Text = "ĐỘ BÓNG BỀ MẶT PHẢN CHIẾU: 20 %", TextColor3 = Color3.fromRGB(0, 255, 180), Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 13})
@@ -328,7 +327,6 @@ table.insert(connections, UserInputService.InputEnded:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then sliderDragging = false end 
 end))
 
--- Bug 4 Fix: Wrapped with structural fallback checks to accommodate incomplete device hook drivers safely
 pcall(function()
     table.insert(connections, UserInputService.WindowFocusReleased:Connect(function()
         sliderDragging = false
@@ -368,7 +366,6 @@ LoadingFrame.Size = UDim2.new(0, 290, 0, 100)
 LoadingFrame.Position = UDim2.new(0.5, -145, 0.5, -50)
 LoadingFrame.BackgroundColor3 = Color3.fromRGB(15, 22, 36)
 LoadingFrame.BorderSizePixel = 0
--- Bug 2 Fix: Removed evaluation logic that evaluated to structural nil parents on compilation
 LoadingFrame.Parent = LoadingGui
 
 local UICorner = Instance.new("UICorner")
@@ -414,21 +411,36 @@ local ProgressCorner = Instance.new("UICorner")
 ProgressCorner.CornerRadius = UDim.new(0, 2)
 ProgressCorner.Parent = LoadingBar
 
+-- Fix 3: Bọc pcall bao quát toàn bộ thread loading, cô lập hoàn toàn nguy cơ đóng băng UI chính
 task.spawn(function()
-    LoadingText.Text = "⚡ Khởi tạo lõi mượt mà V6.4..."
-    local t1 = TweenService:Create(LoadingBar, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.35, 0, 1, 0)})
-    t1:Play() t1.Completed:Wait() task.wait(0.05)
+    local success = pcall(function()
+        LoadingText.Text = "⚡ Khởi tạo lõi mượt mà V6.4..."
+        local t1 = TweenService:Create(LoadingBar, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.35, 0, 1, 0)})
+        if t1 then t1:Play() t1.Completed:Wait() end
+        task.wait(0.05)
 
-    LoadingText.Text = "🔍 Loại bỏ module cũ..."
-    local t2 = TweenService:Create(LoadingBar, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 1, 0)})
-    t2:Play() t2.Completed:Wait() task.wait(0.05)
+        LoadingText.Text = "🔍 Loại bỏ module cũ..."
+        local t2 = TweenService:Create(LoadingBar, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.75, 0, 1, 0)})
+        if t2 then t2:Play() t2.Completed:Wait() end
+        task.wait(0.05)
 
-    LoadingText.Text = "🚀 Cấu hình hiển thị Shader + Gloss..."
-    local t3 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
-    t3:Play() t3.Completed:Wait() task.wait(0.05)
+        LoadingText.Text = "🚀 Cấu hình hiển thị Shader + Gloss..."
+        local t3 = TweenService:Create(LoadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)})
+        if t3 then t3:Play() t3.Completed:Wait() end
+        task.wait(0.05)
+    end)
 
     pcall(function() LoadingGui:Destroy() end)
-    warn("🚀 vanut Ultimate V6.4 Minimalist đã sẵn sàng!")
-    
-    ToggleMenuBtn.Visible = true
+    if success then
+        warn("🚀 vanut Ultimate V6.4 Minimalist đã sẵn sàng!")
+    else
+        warn("⚠️ Loading thread crashed silently nhưng UI chính đã được bảo vệ thành công.")
+    end
+end)
+
+-- Patch khẩn cấp: Ép hiển thị cưỡng bức sau 1.5 giây để cứu nguy nếu xảy ra bất kỳ lỗi bất thường nào
+task.delay(1.5, function()
+    if ToggleMenuBtn then
+        ToggleMenuBtn.Visible = true
+    end
 end)
