@@ -124,12 +124,10 @@ local function resetLightingComplete()
     if starConn then starConn:Disconnect() starConn = nil end
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
     
-    -- Xóa các hiệu ứng shader cũ tạo ra
     for _, n in pairs({"VanutBloom", "VanutCC", "VanutSunRays", "VanutSky"}) do 
         local found = Lighting:FindFirstChild(n) if found then found:Destroy() end 
     end
     
-    -- Khôi phục lại Atmosphere gốc của game nếu có
     if backupAtmosphere then
         backupAtmosphere.Parent = Lighting
         backupAtmosphere = nil
@@ -148,11 +146,9 @@ end
 local function spawnAdvancedNight()
     if starConn then starConn:Disconnect() end
     
-    -- Dọn dẹp Sky cũ trước khi tạo cái mới
     local oldSky = Lighting:FindFirstChild("VanutSky") or Lighting:FindFirstChildOfClass("Sky")
     if oldSky and oldSky.Name ~= "VanutSky" then oldSky:Destroy() end
     
-    -- Tạm thời ẩn Atmosphere của game đi để Skybox hiện lên rõ nét
     local currentAtmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
     if currentAtmosphere then
         backupAtmosphere = currentAtmosphere
