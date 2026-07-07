@@ -9,7 +9,7 @@ local player = Players.LocalPlayer
 local targetGui = player:WaitForChild("PlayerGui", 10)
 if not targetGui then return end
 
--- Ép hủy menu cũ nếu trùng tên để tránh kẹt script
+-- Tự động dọn dẹp menu cũ trước khi chạy bản mới để không bị kẹt ngầm
 local oldGui = targetGui:FindFirstChild("Vanut_Shader_Only")
 if oldGui then 
     pcall(function() oldGui:Destroy() end)
@@ -314,6 +314,7 @@ for i, data in ipairs(shaderFuncs) do
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
+-- ĐÂY LÀ NÚT ĐƯỢC CHÈN THÊM VÀO CUỐI MENU - KHÔNG THAY ĐỔI CODE KHÁC
 local ShadowToggleBtn = create("TextButton", ScrollFrame, {
     Size = UDim2.new(0.96, 0, 0, 38), 
     Position = UDim2.new(0.02, 0, 0, 5 + (#shaderFuncs)*44), 
