@@ -27,8 +27,7 @@ local ToggleBtn = create("TextButton", ScreenGui, {
     TextColor3 = Color3.fromRGB(255, 255, 255),
     TextSize = 15,
     Font = Enum.Font.GothamBold,
-    Active = true,
-    Draggable = true
+    Active = true
 })
 create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
 create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
@@ -74,18 +73,50 @@ local function makeDraggable(guiObject)
     UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then local delta = input.Position - dragStart guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 end
 makeDraggable(MainMenu)
+makeDraggable(ToggleBtn)
 
 local FpsFrame = create("Frame", ScreenGui, {Size = UDim2.new(0, 120, 0, 40), Position = UDim2.new(0.85, 0, 0.05, 0), BackgroundTransparency = 1, Active = true})
 local FpsLabel = create("TextLabel", FpsFrame, {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "FPS: ...", TextSize = 18, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center})
 makeDraggable(FpsFrame)
 
-local frameCount, lastUpdate, hue = 0, os.clock(), 0
-RunService.RenderStepped:Connect(function(dt)
-    frameCount = frameCount + 1
-    local now = os.clock()
-    if now - lastUpdate >= 0.5 then FpsLabel.Text = "FPS: " .. math.floor(frameCount / (now - lastUpdate)) frameCount = 0 lastUpdate = now end
-    hue = (hue + dt * 0.1) % 1 FpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+task.spawn(function()
+    local frameCount, hue = 0, 0
+    RunService.RenderStepped:Connect(function(dt)
+        frameCount = frameCount + 1
+        hue = (hue + dt * 0.1) % 1 
+        FpsLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    end)
+    while true do
+        task.wait(0.5)
+        FpsLabel.Text = "FPS: " .. (frameCount * 2)
+        frameCount = 0
+    end
 end)
+
+local cachedParts = {}
+local cachedLights = {}
+local cachedVisuals = {}
+local isWorldCached = false
+
+local function cacheWorkspace()
+    if isWorldCached then return end
+    table.clear(cachedParts)
+    table.clear(cachedLights)
+    table.clear(cachedVisuals)
+    
+    for i, object in ipairs(Workspace:GetDescendants()) do
+        if object:IsA("BasePart") then
+            table.insert(cachedParts, object)
+        elseif object:IsA("Light") then
+            table.insert(cachedLights, object)
+        elseif object:IsA("Decal") or object:IsA("Texture") or object:IsA("SurfaceAppearance") then
+            table.insert(cachedVisuals, object)
+        end
+        if i % 400 == 0 then task.wait() end
+    end
+    isWorldCached = true
+end
+task.defer(cacheWorkspace)
 
 local ReflectSliderFrame = create("Frame", MainMenu, {Size = UDim2.new(0.9, 0, 0, 45), Position = UDim2.new(0.05, 0, 1, -200), BackgroundColor3 = Color3.fromRGB(30, 41, 59)})
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
@@ -96,65 +127,117 @@ local ReflectSliderBtn = create("TextButton", ReflectSliderBar, {Size = UDim2.ne
 create("UICorner", ReflectSliderBtn, {CornerRadius = UDim.new(0, 7)})
 
 local ReflectActive, currentGlossValue = false, 0
+local lastReflectionUpdate = 0
+
 local function updateWorldReflection(glossPercentage)
     ReflectSliderLabel.Text = "Độ Bóng Đồ Họa Cao: " .. math.floor(glossPercentage * 100) .. "%"
-    for _, object in pairs(Workspace:GetDescendants()) do
-        if object:IsA("BasePart") and (object.Size.X > 1.5 or object.Size.Z > 1.5) then
-            object.Material = Enum.Material.SmoothPlastic object.Reflectance = glossPercentage * 0.65
+    task.spawn(function()
+        for i, object in ipairs(cachedParts) do
+            if object.Parent and (object.Size.X > 1.5 or object.Size.Z > 1.5) then
+                object.Material = Enum.Material.SmoothPlastic 
+                object.Reflectance = glossPercentage * 0.35
+            end
+            if i % 300 == 0 then task.wait() end
         end
-    end
+    end)
 end
+
 ReflectSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = true end end)
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then ReflectActive = false end end)
 UserInputService.InputChanged:Connect(function(input)
     if ReflectActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local percentage = math.clamp((input.Position.X - ReflectSliderBar.AbsolutePosition.X) / ReflectSliderBar.AbsoluteSize.X, 0, 1)
-        ReflectSliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7) currentGlossValue = percentage updateWorldReflection(percentage)
+        ReflectSliderBtn.Position = UDim2.new(percentage, -7, 0.5, -7) 
+        currentGlossValue = percentage 
+        
+        local now = os.clock()
+        if now - lastReflectionUpdate >= 0.05 then
+            lastReflectionUpdate = now
+            updateWorldReflection(percentage)
+        end
     end
 end)
 
-local timeLockConn, starConn, brightConn, originalMaterials = nil, nil, nil, {}
-local function disableMotionBlurOnly() RunService:UnbindFromRenderStep("VanutMotionBlurUpdate") local blur = Lighting:FindFirstChild("VanutMotionBlur") if blur then blur:Destroy() end end
+local timeLockConn, nightActive, isVisualsEnhanced = nil, false, false
+
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
-    if starConn then starConn:Disconnect() starConn = nil end
-    if brightConn then brightConn:Disconnect() brightConn = nil end
-    disableMotionBlurOnly()
-    for part, mat in pairs(originalMaterials) do if part and part:IsA("BasePart") then part.Material = mat part.Reflectance = 0 end end
-    table.clear(originalMaterials)
+    nightActive = false
+    
+    task.spawn(function()
+        for i, part in ipairs(cachedParts) do
+            if part.Parent then part.Reflectance = 0 end
+            if i % 400 == 0 then task.wait() end
+        end
+    end)
+    
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
-    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays", "VanutSky"}) do local found = Lighting:FindFirstChild(n) if found then found:Destroy() end end
+    for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays"}) do local found = Lighting:FindFirstChild(n) if found then found:Destroy() end end
     Lighting.ClockTime = 14 Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(128, 128, 128) Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
 end
 
 local function lockTime(targetTime) if timeLockConn then timeLockConn:Disconnect() end timeLockConn = RunService.Heartbeat:Connect(function() Lighting.ClockTime = targetTime end) end
+
 local function spawnAdvancedNight()
-    if starConn then starConn:Disconnect() end
-    create("Sky", Lighting, {Name = "VanutSky", SkyboxBk = "rbxassetid://6008860012", SkyboxDn = "rbxassetid://6008860012", SkyboxFt = "rbxassetid://6008860012", SkyboxLf = "rbxassetid://6008860012", SkyboxRt = "rbxassetid://6008860012", SkyboxUp = "rbxassetid://6008860012", StarCount = 5000})
-    starConn = RunService.Heartbeat:Connect(function()
-        if math.random(1, 120) == 1 then
-            local startPos = Vector3.new(math.random(-200, 200), math.random(120, 180), math.random(-200, 200))
-            local meteor = create("Part", Workspace, {Name = "VanutMeteor", Size = Vector3.new(1, 1, 5), Material = Enum.Material.Neon, Color = Color3.fromRGB(200, 240, 255), Anchored = true, CanCollide = false, Position = startPos})
-            local tween = TweenService:Create(meteor, TweenInfo.new(0.8, Enum.EasingStyle.QuadIn), {Position = startPos + Vector3.new(0, -100, 0), Transparency = 1})
-            tween.Completed:Connect(function() meteor:Destroy() end) tween:Play()
+    nightActive = true
+    task.spawn(function()
+        while nightActive do
+            task.wait(0.3)
+            if math.random(1, 4) == 1 then
+                local startPos = Vector3.new(math.random(-200, 200), math.random(120, 180), math.random(-200, 200))
+                local meteor = create("Part", Workspace, {Name = "VanutMeteor", Size = Vector3.new(1, 1, 5), Material = Enum.Material.Neon, Color = Color3.fromRGB(200, 240, 255), Anchored = true, CanCollide = false, Position = startPos})
+                local tween = TweenService:Create(meteor, TweenInfo.new(0.8, Enum.EasingStyle.QuadIn), {Position = startPos + Vector3.new(0, -100, 0), Transparency = 1})
+                tween.Completed:Connect(function() meteor:Destroy() end) tween:Play()
+            end
+        end
+    end)
+end
+
+local function enhanceLightsAndVisuals()
+    if isVisualsEnhanced then return end
+    isVisualsEnhanced = true
+    
+    task.spawn(function()
+        for i, obj in ipairs(cachedLights) do
+            if obj.Parent then
+                obj.Brightness = obj.Brightness * 2.0
+                obj.Range = obj.Range * 1.5
+                obj.Shadows = true
+            end
+            if i % 300 == 0 then task.wait() end
+        end
+    end)
+
+    task.spawn(function()
+        Lighting.GlobalShadows = true 
+        Lighting.ShadowSoftness = 0
+        for i, obj in ipairs(cachedParts) do
+            if obj.Parent then
+                obj.CastShadow = true
+                if obj:IsA("MeshPart") or obj:FindFirstChildOfClass("SpecialMesh") then
+                    obj.RenderFidelity = Enum.RenderFidelity.Automatic
+                end
+            end
+            if i % 300 == 0 then task.wait() end
+        end
+    end)
+
+    task.spawn(function()
+        for i, obj in ipairs(cachedVisuals) do
+            if obj.Parent then obj.LocalTransparencyModifier = 0 end
+            if i % 300 == 0 then task.wait() end
         end
     end)
 end
 
 local shaderFuncs = {
-    {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 Lighting.OutdoorAmbient = Color3.fromRGB(255, 225, 160) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35, Spread = 0.7}) end},
-    {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.6}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3, Size = 15, Threshold = 0.85}) end},
-    {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 Lighting.OutdoorAmbient = Color3.fromRGB(255, 170, 120) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.75}) end},
-    {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 Lighting.Ambient = Color3.fromRGB(65, 70, 95) Lighting.OutdoorAmbient = Color3.fromRGB(45, 50, 70) spawnAdvancedNight() end},
-    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15, TintColor = Color3.fromRGB(255, 240, 220)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10, Threshold = 0.9}) end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.2, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) end},
-    {"Tăng Độ Nét 4K (Ultra)", function()
-        Lighting.GlobalShadows = true Lighting.ShadowSoftness = 0
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") then obj.CastShadow = true obj.Material = Enum.Material.SmoothPlastic
-            elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then obj.LocalTransparencyModifier = 0 end
-        end
-    end}
+    {"Bình minh vàng", function() lockTime(6.2) Lighting.Brightness = 2.6 Lighting.OutdoorAmbient = Color3.fromRGB(255, 225, 160) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.35, Spread = 0.7}) enhanceLightsAndVisuals() end},
+    {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.6}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3, Size = 15, Threshold = 0.85}) enhanceLightsAndVisuals() end},
+    {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 Lighting.OutdoorAmbient = Color3.fromRGB(255, 170, 120) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.75}) enhanceLightsAndVisuals() end},
+    {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 Lighting.Ambient = Color3.fromRGB(65, 70, 95) Lighting.OutdoorAmbient = Color3.fromRGB(45, 50, 70) spawnAdvancedNight() enhanceLightsAndVisuals() end},
+    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15, TintColor = Color3.fromRGB(255, 240, 220)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10, Threshold = 0.9}) enhanceLightsAndVisuals() end},
+    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.2, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) enhanceLightsAndVisuals() end},
+    {"Tăng Độ Nét 4K (Ultra)", function() enhanceLightsAndVisuals() end}
 }
 
 for i, data in ipairs(shaderFuncs) do
