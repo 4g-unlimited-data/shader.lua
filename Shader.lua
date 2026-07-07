@@ -160,19 +160,63 @@ end)
 
 local timeLockConn, nightActive, isVisualsEnhanced = nil, false, false
 local evadeShadowsActive = false
+local fakeShadowsFolder = nil
+
+local function removeFakeShadows()
+    if fakeShadowsFolder then
+        fakeShadowsFolder:Destroy()
+        fakeShadowsFolder = nil
+    end
+end
+
+local function applyFakeShadows()
+    if not evadeShadowsActive then return end
+    if not fakeShadowsFolder then
+        fakeShadowsFolder = Instance.new("Folder")
+        fakeShadowsFolder.Name = "VanutFakeShadows"
+        fakeShadowsFolder.Parent = Workspace
+    end
+
+    for _, obj in ipairs(cachedParts) do
+        if obj.Parent and obj:IsA("BasePart") and not obj:IsA("Terrain") and obj.Transparency < 0.5 and obj.Name ~= "VanutFakeShadow" and obj.Name ~= "VanutMeteor" then
+            if obj.Size.X > 2 and obj.Size.Z > 2 and not fakeShadowsFolder:FindFirstChild(obj.Name .. "_Shadow") then
+                local raycastParams = RaycastParams.new()
+                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                raycastParams.FilterDescendantsInstances = {obj, fakeShadowsFolder, player.Character}
+
+                local rayResult = Workspace:Raycast(obj.Position, Vector3.new(0, -100, 0), raycastParams)
+                if rayResult then
+                    local shadow = Instance.new("Part")
+                    shadow.Name = obj.Name .. "_Shadow"
+                    shadow.Size = Vector3.new(obj.Size.X, 0.1, obj.Size.Z)
+                    shadow.Position = rayResult.Position + Vector3.new(0, 0.05, 0)
+                    shadow.Anchored = true
+                    shadow.CanCollide = false
+                    shadow.CanTouch = false
+                    shadow.CanQuery = false
+                    shadow.Material = Enum.Material.SmoothPlastic
+                    shadow.Color = Color3.fromRGB(10, 10, 15)
+                    shadow.Transparency = 0.55
+                    
+                    local mesh = Instance.new("BlockMesh", shadow)
+                    mesh.Scale = Vector3.new(1.02, 1, 1.02)
+                    
+                    shadow.Parent = fakeShadowsFolder
+                end
+            end
+        end
+    end
+end
 
 local function updateEvadeShadows(state)
     evadeShadowsActive = state
-    Lighting.GlobalShadows = state
-    if state then Lighting.ShadowSoftness = 0 end
-    task.spawn(function()
-        for i, obj in ipairs(cachedParts) do
-            if obj.Parent then
-                obj.CastShadow = state
-            end
-            if i % 300 == 0 then task.wait() end
-        end
-    end)
+    if state then
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0
+        task.spawn(applyFakeShadows)
+    else
+        removeFakeShadows()
+    end
 end
 
 local function resetLightingComplete()
@@ -227,7 +271,6 @@ local function enhanceLightsAndVisuals()
     task.spawn(function()
         for i, obj in ipairs(cachedParts) do
             if obj.Parent then
-                if not evadeShadowsActive then obj.CastShadow = true end
                 if obj:IsA("MeshPart") or obj:FindFirstChildOfClass("SpecialMesh") then
                     obj.RenderFidelity = Enum.RenderFidelity.Precise
                 end
@@ -257,7 +300,7 @@ local shaderFuncs = {
         cc.Saturation = 0.1
         enhanceLightsAndVisuals()
     end}
-}
+end
 
 for i, data in ipairs(shaderFuncs) do
     local btn = create("TextButton", ScrollFrame, {Size = UDim2.new(0.96, 0, 0, 38), Position = UDim2.new(0.02, 0, 0, 5 + (i-1)*44), BackgroundColor3 = Color3.fromRGB(30, 41, 59), Text = data[1], TextColor3 = Color3.fromRGB(241, 245, 249), TextSize = 13, Font = Enum.Font.GothamSemibold})
@@ -292,13 +335,9 @@ end)
 task.spawn(function()
     while true do
         if evadeShadowsActive then
-            for _, mapObj in ipairs(Workspace:GetDescendants()) do
-                if mapObj:IsA("BasePart") and not mapObj.CastShadow then
-                    mapObj.CastShadow = true
-                end
-            end
+            applyFakeShadows()
         end
-        task.wait(3)
+        task.wait(4)
     end
 end)
 
