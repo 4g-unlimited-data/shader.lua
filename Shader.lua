@@ -8,7 +8,13 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local targetGui = player:WaitForChild("PlayerGui", 10)
 if not targetGui then return end
-if targetGui:FindFirstChild("Vanut_Shader_Only") then targetGui["Vanut_Shader_Only"]:Destroy() end
+
+-- Ép hủy menu cũ nếu trùng tên để tránh kẹt script
+local oldGui = targetGui:FindFirstChild("Vanut_Shader_Only")
+if oldGui then 
+    pcall(function() oldGui:Destroy() end)
+    task.wait(0.1)
+end
 
 local function create(cls, parent, props)
     local inst = Instance.new(cls)
@@ -164,7 +170,7 @@ local fakeShadowsFolder = nil
 
 local function removeFakeShadows()
     if fakeShadowsFolder then
-        fakeShadowsFolder:Destroy()
+        pcall(function() fakeShadowsFolder:Destroy() end)
         fakeShadowsFolder = nil
     end
 end
