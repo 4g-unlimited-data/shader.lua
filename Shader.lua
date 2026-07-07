@@ -3,9 +3,9 @@ local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
 local targetGui = player:WaitForChild("PlayerGui", 10)
 if not targetGui then return end
 if targetGui:FindFirstChild("Vanut_Shader_Only") then targetGui["Vanut_Shader_Only"]:Destroy() end
@@ -33,8 +33,8 @@ create("UICorner", ToggleBtn, {CornerRadius = UDim.new(0, 30)})
 create("UIStroke", ToggleBtn, {Color = Color3.fromRGB(56, 189, 248), Thickness = 2})
 
 local MainMenu = create("Frame", ScreenGui, {
-    Size = UDim2.new(0, 260, 0, 605), 
-    Position = UDim2.new(0.5, -130, 0.5, -302), 
+    Size = UDim2.new(0, 260, 0, 550), 
+    Position = UDim2.new(0.5, -130, 0.5, -275), 
     BackgroundColor3 = Color3.fromRGB(15, 23, 42), 
     Visible = false
 })
@@ -51,10 +51,10 @@ local MenuTitle = create("TextLabel", MainMenu, {
 })
 
 local ScrollFrame = create("ScrollingFrame", MainMenu, {
-    Size = UDim2.new(1, -20, 1, -265),
+    Size = UDim2.new(1, -20, 1, -210),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 550),
+    CanvasSize = UDim2.new(0, 0, 0, 300),
     ScrollBarThickness = 2,
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
@@ -62,15 +62,29 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
 ToggleBtn.MouseButton1Click:Connect(function() MainMenu.Visible = not MainMenu.Visible end)
 
 local function makeDraggable(guiObject)
-    local dragging, dragInput, dragStart, startPos
+    local dragging, dragStart, startPos
     guiObject.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = guiObject.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+            dragging = true
+            dragStart = input.Position
+            startPos = guiObject.Position
+            
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    connection:Disconnect()
+                end
+            end)
         end
     end)
-    guiObject.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
-    UserInputService.InputChanged:Connect(function(input) if input == dragInput and dragging then local delta = input.Position - dragStart guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 makeDraggable(MainMenu)
 makeDraggable(ToggleBtn)
@@ -78,6 +92,19 @@ makeDraggable(ToggleBtn)
 local FpsFrame = create("Frame", ScreenGui, {Size = UDim2.new(0, 120, 0, 40), Position = UDim2.new(0.85, 0, 0.05, 0), BackgroundTransparency = 1, Active = true})
 local FpsLabel = create("TextLabel", FpsFrame, {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "FPS: ...", TextSize = 18, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Center})
 makeDraggable(FpsFrame)
+
+-- Hệ thống Tối ưu hóa Chuyển động Quay Camera (Smooth Mouse Camera)
+local SMOOTHNESS = 0.15 
+local targetCFrame = camera.CFrame
+
+RunService:BindToRenderStep("VanutSmoothCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+    if camera.CameraType == Enum.CameraType.Custom then
+        targetCFrame = targetCFrame:Lerp(camera.CFrame, math.clamp(dt * (1 / SMOOTHNESS), 0, 1))
+        camera.CFrame = targetCFrame
+    else
+        targetCFrame = camera.CFrame
+    end
+end)
 
 task.spawn(function()
     local frameCount, hue = 0, 0
@@ -112,13 +139,13 @@ local function cacheWorkspace()
         elseif object:IsA("Decal") or object:IsA("Texture") or object:IsA("SurfaceAppearance") then
             table.insert(cachedVisuals, object)
         end
-        if i % 400 == 0 then task.wait() end
+        if i % 1000 == 0 then task.wait() end
     end
     isWorldCached = true
 end
 task.defer(cacheWorkspace)
 
-local ReflectSliderFrame = create("Frame", MainMenu, {Size = UDim2.new(0.9, 0, 0, 45), Position = UDim2.new(0.05, 0, 1, -200), BackgroundColor3 = Color3.fromRGB(30, 41, 59)})
+local ReflectSliderFrame = create("Frame", MainMenu, {Size = UDim2.new(0.9, 0, 0, 45), Position = UDim2.new(0.05, 0, 1, -110), BackgroundColor3 = Color3.fromRGB(30, 41, 59)})
 create("UICorner", ReflectSliderFrame, {CornerRadius = UDim.new(0, 6)})
 local ReflectSliderLabel = create("TextLabel", ReflectSliderFrame, {Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Text = "Độ Bóng Đồ Họa Cao: 0%", TextColor3 = Color3.fromRGB(148, 163, 184), TextSize = 11, Font = Enum.Font.GothamSemibold})
 local ReflectSliderBar = create("Frame", ReflectSliderFrame, {Size = UDim2.new(0.8, 0, 0, 6), Position = UDim2.new(0.1, 0, 0.65, 0), BackgroundColor3 = Color3.fromRGB(51, 65, 85)})
@@ -137,7 +164,7 @@ local function updateWorldReflection(glossPercentage)
                 object.Material = Enum.Material.SmoothPlastic 
                 object.Reflectance = glossPercentage * 0.35
             end
-            if i % 300 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
 end
@@ -151,7 +178,7 @@ UserInputService.InputChanged:Connect(function(input)
         currentGlossValue = percentage 
         
         local now = os.clock()
-        if now - lastReflectionUpdate >= 0.05 then
+        if now - lastReflectionUpdate >= 0.1 then
             lastReflectionUpdate = now
             updateWorldReflection(percentage)
         end
@@ -167,7 +194,7 @@ local function resetLightingComplete()
     task.spawn(function()
         for i, part in ipairs(cachedParts) do
             if part.Parent then part.Reflectance = 0 end
-            if i % 400 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
     
@@ -182,17 +209,20 @@ local function spawnAdvancedNight()
     nightActive = true
     task.spawn(function()
         while nightActive do
-            task.wait(0.3)
-            if math.random(1, 4) == 1 then
+            task.wait(0.5)
+            if math.random(1, 5) == 1 then
                 local startPos = Vector3.new(math.random(-200, 200), math.random(120, 180), math.random(-200, 200))
                 local meteor = create("Part", Workspace, {Name = "VanutMeteor", Size = Vector3.new(1, 1, 5), Material = Enum.Material.Neon, Color = Color3.fromRGB(200, 240, 255), Anchored = true, CanCollide = false, Position = startPos})
-                local tween = TweenService:Create(meteor, TweenInfo.new(0.8, Enum.EasingStyle.QuadIn), {Position = startPos + Vector3.new(0, -100, 0), Transparency = 1})
-                tween.Completed:Connect(function() meteor:Destroy() end) tween:Play()
+                task.spawn(function()
+                    task.wait(0.2)
+                    if meteor then meteor:Destroy() end
+                end)
             end
         end
     end)
 end
 
+-- Hệ thống tăng cường đèn đường/đèn nhà sang trọng kiểu Evade
 local function enhanceLightsAndVisuals()
     if isVisualsEnhanced then return end
     isVisualsEnhanced = true
@@ -200,11 +230,17 @@ local function enhanceLightsAndVisuals()
     task.spawn(function()
         for i, obj in ipairs(cachedLights) do
             if obj.Parent then
-                obj.Brightness = obj.Brightness * 2.0
-                obj.Range = obj.Range * 1.5
+                -- Làm đèn sáng rực rỡ và tỏa rộng ra xung quanh giống Evade
+                obj.Brightness = obj.Brightness * 3.5 
+                obj.Range = obj.Range * 2.0
                 obj.Shadows = true
+                
+                -- Tạo tông màu ấm áp sang trọng cho ánh đèn nhà/đèn đường
+                if obj.Color == Color3.fromRGB(255, 255, 255) then
+                    obj.Color = Color3.fromRGB(255, 238, 204)
+                end
             end
-            if i % 300 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
 
@@ -217,15 +253,19 @@ local function enhanceLightsAndVisuals()
                 if obj:IsA("MeshPart") or obj:FindFirstChildOfClass("SpecialMesh") then
                     obj.RenderFidelity = Enum.RenderFidelity.Precise
                 end
+                -- Làm nổi bật các thanh Neon của đèn đường
+                if obj.Material == Enum.Material.Neon then
+                    obj.LocalTransparencyModifier = 0
+                end
             end
-            if i % 300 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
 
     task.spawn(function()
         for i, obj in ipairs(cachedVisuals) do
             if obj.Parent then obj.LocalTransparencyModifier = 0 end
-            if i % 300 == 0 then task.wait() end
+            if i % 1000 == 0 then task.wait() end
         end
     end)
 end
@@ -236,13 +276,7 @@ local shaderFuncs = {
     {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 Lighting.OutdoorAmbient = Color3.fromRGB(255, 170, 120) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.75}) enhanceLightsAndVisuals() end},
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 Lighting.Ambient = Color3.fromRGB(65, 70, 95) Lighting.OutdoorAmbient = Color3.fromRGB(45, 50, 70) spawnAdvancedNight() enhanceLightsAndVisuals() end},
     {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15, TintColor = Color3.fromRGB(255, 240, 220)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10, Threshold = 0.9}) enhanceLightsAndVisuals() end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.2, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) enhanceLightsAndVisuals() end},
-    {"Tăng Độ Nét 8X (Ultra)", function()
-        local cc = Lighting:FindFirstChild("VanutCC") or create("ColorCorrectionEffect", Lighting, {Name = "VanutCC"})
-        cc.Contrast = 0.4
-        cc.Saturation = 0.1
-        enhanceLightsAndVisuals()
-    end}
+    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.2, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) enhanceLightsAndVisuals() end}
 }
 
 for i, data in ipairs(shaderFuncs) do
