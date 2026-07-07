@@ -54,7 +54,7 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
     Size = UDim2.new(1, -20, 1, -265),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 550),
+    CanvasSize = UDim2.new(0, 0, 0, 600),
     ScrollBarThickness = 2,
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
@@ -159,6 +159,21 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 local timeLockConn, nightActive, isVisualsEnhanced = nil, false, false
+local evadeShadowsActive = false
+
+local function updateEvadeShadows(state)
+    evadeShadowsActive = state
+    Lighting.GlobalShadows = state
+    if state then Lighting.ShadowSoftness = 0 end
+    task.spawn(function()
+        for i, obj in ipairs(cachedParts) do
+            if obj.Parent then
+                obj.CastShadow = state
+            end
+            if i % 300 == 0 then task.wait() end
+        end
+    end)
+end
 
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
@@ -174,6 +189,7 @@ local function resetLightingComplete()
     for _, v in pairs(Workspace:GetChildren()) do if v.Name == "VanutMeteor" then v:Destroy() end end
     for _, n in pairs({"VanutBloom", "VanutCC", "VanutAtmosphere", "VanutSunRays"}) do local found = Lighting:FindFirstChild(n) if found then found:Destroy() end end
     Lighting.ClockTime = 14 Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(128, 128, 128) Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    updateEvadeShadows(false)
 end
 
 local function lockTime(targetTime) if timeLockConn then timeLockConn:Disconnect() end timeLockConn = RunService.Heartbeat:Connect(function() Lighting.ClockTime = targetTime end) end
@@ -209,11 +225,9 @@ local function enhanceLightsAndVisuals()
     end)
 
     task.spawn(function()
-        Lighting.GlobalShadows = true 
-        Lighting.ShadowSoftness = 0 
         for i, obj in ipairs(cachedParts) do
             if obj.Parent then
-                obj.CastShadow = true
+                if not evadeShadowsActive then obj.CastShadow = true end
                 if obj:IsA("MeshPart") or obj:FindFirstChildOfClass("SpecialMesh") then
                     obj.RenderFidelity = Enum.RenderFidelity.Precise
                 end
@@ -226,17 +240,6 @@ local function enhanceLightsAndVisuals()
         for i, obj in ipairs(cachedVisuals) do
             if obj.Parent then obj.LocalTransparencyModifier = 0 end
             if i % 300 == 0 then task.wait() end
-        end
-    end)
-    
-    task.spawn(function()
-        while isVisualsEnhanced do
-            for _, mapObj in ipairs(Workspace:GetDescendants()) do
-                if mapObj:IsA("BasePart") and not mapObj.CastShadow then
-                    mapObj.CastShadow = true
-                end
-            end
-            task.wait(5)
         end
     end)
 end
@@ -262,6 +265,47 @@ for i, data in ipairs(shaderFuncs) do
     btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
+local ShadowToggleBtn = create("TextButton", ScrollFrame, {
+    Size = UDim2.new(0.96, 0, 0, 38), 
+    Position = UDim2.new(0.02, 0, 0, 5 + (#shaderFuncs)*44), 
+    BackgroundColor3 = Color3.fromRGB(30, 41, 59), 
+    Text = "Bóng Đổ Vật Thể: TẮT", 
+    TextColor3 = Color3.fromRGB(239, 68, 68), 
+    TextSize = 13, 
+    Font = Enum.Font.GothamBold
+})
+create("UICorner", ShadowToggleBtn, {CornerRadius = UDim.new(0, 6)})
+create("UIStroke", ShadowToggleBtn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
+
+ShadowToggleBtn.MouseButton1Click:Connect(function()
+    local newState = not evadeShadowsActive
+    updateEvadeShadows(newState)
+    if newState then
+        ShadowToggleBtn.Text = "Bóng Đổ Vật Thể: BẬT"
+        ShadowToggleBtn.TextColor3 = Color3.fromRGB(34, 197, 94)
+    else
+        ShadowToggleBtn.Text = "Bóng Đổ Vật Thể: TẮT"
+        ShadowToggleBtn.TextColor3 = Color3.fromRGB(239, 68, 68)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if evadeShadowsActive then
+            for _, mapObj in ipairs(Workspace:GetDescendants()) do
+                if mapObj:IsA("BasePart") and not mapObj.CastShadow then
+                    mapObj.CastShadow = true
+                end
+            end
+        end
+        task.wait(3)
+    end
+end)
+
 local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 38), Position = UDim2.new(0.05, 0, 1, -48), BackgroundColor3 = Color3.fromRGB(239, 68, 68), Text = "XÓA SHADER ALL", TextColor3 = Color3.fromRGB(255, 255, 255), TextSize = 13, Font = Enum.Font.GothamBold})
 create("UICorner", ResetBtn, {CornerRadius = UDim.new(0, 6)})
-ResetBtn.MouseButton1Click:Connect(resetLightingComplete)
+ResetBtn.MouseButton1Click:Connect(function()
+    resetLightingComplete()
+    ShadowToggleBtn.Text = "Bóng Đổ Vật Thể: TẮT"
+    ShadowToggleBtn.TextColor3 = Color3.fromRGB(239, 68, 68)
+end)
