@@ -54,7 +54,7 @@ local ScrollFrame = create("ScrollingFrame", MainMenu, {
     Size = UDim2.new(1, -20, 1, -265),
     Position = UDim2.new(0, 10, 0, 45),
     BackgroundTransparency = 1,
-    CanvasSize = UDim2.new(0, 0, 0, 600),
+    CanvasSize = UDim2.new(0, 0, 0, 550),
     ScrollBarThickness = 2,
     ScrollBarImageColor3 = Color3.fromRGB(56, 189, 248)
 })
@@ -160,31 +160,9 @@ end)
 
 local timeLockConn, nightActive, isVisualsEnhanced = nil, false, false
 
-local function disableMotionBlur()
-    RunService:UnbindFromRenderStep("VanutCinematicBlur")
-    local blur = Lighting:FindFirstChild("VanutMotionBlur")
-    if blur then blur:Destroy() end
-end
-
-local function enableMotionBlur()
-    disableMotionBlur()
-    local blurEffect = create("BlurEffect", Lighting, {Name = "VanutMotionBlur", Size = 0})
-    local camera = Workspace.CurrentCamera
-    local lastCFrame = camera.CFrame
-
-    RunService:BindToRenderStep("VanutCinematicBlur", Enum.RenderPriority.Camera.Value + 1, function()
-        local currentCFrame = camera.CFrame
-        local angle = math.acos(math.clamp(currentCFrame.LookVector:Dot(lastCFrame.LookVector), -1, 1))
-        local blurAmount = math.clamp(angle * 120, 0, 14)
-        blurEffect.Size = blurAmount
-        lastCFrame = currentCFrame
-    end)
-end
-
 local function resetLightingComplete()
     if timeLockConn then timeLockConn:Disconnect() timeLockConn = nil end
     nightActive = false
-    disableMotionBlur()
     
     task.spawn(function()
         for i, part in ipairs(cachedParts) do
@@ -216,15 +194,14 @@ local function spawnAdvancedNight()
 end
 
 local function enhanceLightsAndVisuals()
-    enableMotionBlur()
     if isVisualsEnhanced then return end
     isVisualsEnhanced = true
     
     task.spawn(function()
         for i, obj in ipairs(cachedLights) do
             if obj.Parent then
-                obj.Brightness = obj.Brightness * 3.5 
-                obj.Range = obj.Range * 1.6
+                obj.Brightness = obj.Brightness * 2.0
+                obj.Range = obj.Range * 1.5
                 obj.Shadows = true
             end
             if i % 300 == 0 then task.wait() end
@@ -238,7 +215,7 @@ local function enhanceLightsAndVisuals()
             if obj.Parent then
                 obj.CastShadow = true
                 if obj:IsA("MeshPart") or obj:FindFirstChildOfClass("SpecialMesh") then
-                    obj.RenderFidelity = Enum.RenderFidelity.Automatic
+                    obj.RenderFidelity = Enum.RenderFidelity.Precise
                 end
             end
             if i % 300 == 0 then task.wait() end
@@ -258,24 +235,20 @@ local shaderFuncs = {
     {"Trưa nắng rực rỡ", function() lockTime(12) Lighting.Brightness = 3.4 Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.6}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.3, Size = 15, Threshold = 0.85}) enhanceLightsAndVisuals() end},
     {"Hoàng hôn hồng", function() lockTime(17.8) Lighting.Brightness = 2.5 Lighting.OutdoorAmbient = Color3.fromRGB(255, 170, 120) create("SunRaysEffect", Lighting, {Name = "VanutSunRays", Intensity = 0.4, Spread = 0.75}) enhanceLightsAndVisuals() end},
     {"Đêm nhiều sao", function() lockTime(0) Lighting.Brightness = 1.6 Lighting.Ambient = Color3.fromRGB(65, 70, 95) Lighting.OutdoorAmbient = Color3.fromRGB(45, 50, 70) spawnAdvancedNight() enhanceLightsAndVisuals() end},
-    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.1, Contrast = 0.25, TintColor = Color3.fromRGB(255, 240, 220)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10, Threshold = 0.9}) enhanceLightsAndVisuals() end},
-    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.4, Contrast = 0.3, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) enhanceLightsAndVisuals() end},
-    {"Tăng Độ Nét 4K (Ultra)", function() 
+    {"Cinematic Lofi", function() lockTime(16.5) Lighting.Brightness = 2.2 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = -0.1, Contrast = 0.15, TintColor = Color3.fromRGB(255, 240, 220)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.2, Size = 10, Threshold = 0.9}) enhanceLightsAndVisuals() end},
+    {"Cyberpunk Neon", function() lockTime(19) Lighting.Brightness = 2.8 create("ColorCorrectionEffect", Lighting, {Name = "VanutCC", Saturation = 0.3, Contrast = 0.2, TintColor = Color3.fromRGB(230, 220, 255)}) create("BloomEffect", Lighting, {Name = "VanutBloom", Intensity = 0.6, Size = 24, Threshold = 0.5}) enhanceLightsAndVisuals() end},
+    {"Tăng Độ Nét 8X (Ultra)", function()
         local cc = Lighting:FindFirstChild("VanutCC") or create("ColorCorrectionEffect", Lighting, {Name = "VanutCC"})
-        cc.Saturation = 0.15
-        cc.Contrast = 0.2
-        enhanceLightsAndVisuals() 
-    end},
-    {"BẬT CINEMATIC BLUR (MƯỢT)", function() enableMotionBlur() end}
+        cc.Contrast = 0.4
+        cc.Saturation = 0.1
+        enhanceLightsAndVisuals()
+    end}
 }
 
 for i, data in ipairs(shaderFuncs) do
     local btn = create("TextButton", ScrollFrame, {Size = UDim2.new(0.96, 0, 0, 38), Position = UDim2.new(0.02, 0, 0, 5 + (i-1)*44), BackgroundColor3 = Color3.fromRGB(30, 41, 59), Text = data[1], TextColor3 = Color3.fromRGB(241, 245, 249), TextSize = 13, Font = Enum.Font.GothamSemibold})
     create("UICorner", btn, {CornerRadius = UDim.new(0, 6)}) create("UIStroke", btn, {Color = Color3.fromRGB(51, 65, 85), Thickness = 1})
-    btn.MouseButton1Click:Connect(function() 
-        if data[1] ~= "BẬT CINEMATIC BLUR (MƯỢT)" then resetLightingComplete() end
-        data[2]() 
-    end)
+    btn.MouseButton1Click:Connect(function() resetLightingComplete() data[2]() end)
 end
 
 local ResetBtn = create("TextButton", MainMenu, {Size = UDim2.new(0.9, 0, 0, 38), Position = UDim2.new(0.05, 0, 1, -48), BackgroundColor3 = Color3.fromRGB(239, 68, 68), Text = "XÓA SHADER ALL", TextColor3 = Color3.fromRGB(255, 255, 255), TextSize = 13, Font = Enum.Font.GothamBold})
